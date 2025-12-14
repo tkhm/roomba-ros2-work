@@ -1,0 +1,51 @@
+module(name = "bzlcppros2_trial")
+
+bazel_dep(name = "googletest", version = "1.17.0.bcr.1")
+
+bazel_dep(name = "bazel_clang_tidy")
+git_override(
+    module_name = "bazel_clang_tidy",
+    commit = "da986512bf1a46831d886fd090393b93b8967a5d",
+    remote = "https://github.com/erenon/bazel_clang_tidy.git",
+)
+
+bazel_dep(name = "com_github_mvukov_rules_ros2")
+git_override(
+    module_name = "com_github_mvukov_rules_ros2",
+    commit = "a5c8793ae3674fe19cb157e943c86b9d795fae59",
+    remote = "https://github.com/mvukov/rules_ros2.git",
+)
+
+bazel_dep(name = "rules_cc", version = "0.2.13")
+bazel_dep(name = "rules_python", version = "1.6.3")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    is_default = True,
+    # You must pin the Python version to the one used for rules_ros2_pip_deps_numpy_headers and current_py_cc_headers in rules_ros2.
+    # Otherwise you will get errors at analysis time like:
+    #     configurable attribute "actual" in @@rules_python~~pip~rules_ros2_pip_deps//numpy:_no_matching_repository doesn't match this configuration: No matching wheel for current configuration's Python version.
+    #     The current build configuration's Python version doesn't match any of the Python wheels available for this distribution.
+    python_version = "3.12",
+)
+
+rules_ros2_non_module_deps = use_extension("@com_github_mvukov_rules_ros2//ros2:extensions.bzl", "non_module_deps")
+use_repo(
+    rules_ros2_non_module_deps,
+    # Check the rules_ros2 root MODULE.bazel for a full list of available non-module repos
+    # Required for bazel test:
+    "ros2_common_interfaces",
+    "ros2_geometry2",
+    "ros2_launch",
+    "ros2_launch_ros",
+    "ros2_message_filters",
+    "ros2_rcl_interfaces",
+    "ros2_rclcpp",
+    "ros2_rcutils",
+    "ros2_robot_state_publisher",
+    "ros2_unique_identifier_msgs",
+    "ros2cli",
+    # Required for bazel run:
+    "ros2_rclpy",
+    "ros2_rosidl",
+)
