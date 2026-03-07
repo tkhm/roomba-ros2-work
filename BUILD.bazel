@@ -1,11 +1,34 @@
-# Configuaring clang-tidy
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+# Configuring clang-tidy
 filegroup(
-       name = "clang_tidy_config",
-       srcs = [".clang-tidy"],
-       visibility = ["//visibility:public"],
+    name = "clang_tidy_config",
+    srcs = [".clang-tidy"],
+    visibility = ["//visibility:public"],
 )
 
-# Defined for convenience.
+# clang-format: apply (bazel run //:format)
+sh_binary(
+    name = "format",
+    srcs = ["tools/apply_clang_format.sh"],
+)
+
+# clang-format: check violations (bazel test //:format_check or bazel test //...)
+# tags = ["local"]: disable sandboxing; needed to locate workspace root via realpath.
+sh_test(
+    name = "format_check",
+    srcs = ["tools/check_clang_format.sh"],
+    tags = ["local"],
+)
+
+# config_setting for real serial hardware (Roomba connected via UART)
+# Usage: bazel build //... --define=real_serial=true
+config_setting(
+    name = "use_real_serial",
+    define_values = {"real_serial": "true"},
+    visibility = ["//visibility:public"],
+)
 
 alias(
     name = "ros2_lifecycle",
