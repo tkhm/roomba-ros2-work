@@ -157,12 +157,13 @@ roomba-ros2-work/
 │       ├── DriveCommand.msg  # left_mm_s, right_mm_s
 │       └── RoombaSensors.msg # bumpers, cliff, odometry, battery
 │
-├── libroomba/                # Core library — ROS2-independent (planned)
+├── libroomba/                # Core library — ROS2-independent
 │   ├── include/
 │   │   ├── serial_driver.hpp     # SerialDriver abstract base (HAL)
 │   │   ├── stub_serial_driver.hpp
-│   │   └── roomba_oi.hpp         # OI command constants and helpers
+│   │   └── roomba_oi.hpp         # OI command constants, builders, parsers
 │   └── tests/
+│       └── roomba_oi_test.cpp    # GoogleTest (command encoding, sensor parsing)
 │
 ├── roomba_node/              # Serial communication node (planned)
 ├── keyboard_node/            # Keyboard teleoperation node (planned)

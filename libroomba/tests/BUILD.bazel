@@ -1,0 +1,23 @@
+cc_test(
+    name = "roomba_oi_test",
+    size = "small",
+    testonly = True,
+    srcs = ["roomba_oi_test.cpp"],
+    deps = [
+        "//libroomba:roomba_oi",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "stub_serial_driver_test",
+    size = "small",
+    testonly = True,
+    srcs = ["stub_serial_driver_test.cpp"],
+    deps = [
+        "//libroomba:stub_serial_driver",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
