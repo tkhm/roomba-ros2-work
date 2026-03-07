@@ -5,7 +5,20 @@ BasedOnStyle: Google
 AllowShortFunctionsOnASingleLine: Inline
 # Not analyze the formatted file for the most common alignment of & and *
 DerivePointerAlignment: false
-# Sort each include block separately
-IncludeBlocks: Preserve
+# Regroup include blocks by category with blank lines between groups.
+# Priority 0: main/related header (auto-detected by IncludeIsMainRegex)
+# Priority 1: C/third-party headers with .h extension (e.g. <gtest/gtest.h>)
+# Priority 2: C++ standard library headers (e.g. <vector>)
+# Priority 3: project-internal quoted headers (non-main)
+IncludeBlocks: Regroup
+SortIncludes: true
+IncludeCategories:
+  - Regex: '^<.*\.h>'
+    Priority: 1
+  - Regex: '^<'
+    Priority: 2
+  - Regex: '^"'
+    Priority: 3
+IncludeIsMainRegex: '([-_]test)?$'
 # Set the maximum line length
 ColumnLimit: 100

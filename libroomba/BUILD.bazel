@@ -1,0 +1,19 @@
+cc_library(
+    name = "serial_driver",
+    hdrs = ["include/serial_driver.hpp"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "stub_serial_driver",
+    testonly = True,
+    hdrs = ["include/stub_serial_driver.hpp"],
+    visibility = ["//visibility:public"],
+    deps = [":serial_driver"],
+)
+
+cc_library(
+    name = "roomba_oi",
+    hdrs = ["include/roomba_oi.hpp"],
+    visibility = ["//visibility:public"],
+)
