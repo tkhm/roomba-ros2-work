@@ -1,0 +1,5 @@
+filegroup(
+    name = "roomba_params",
+    srcs = ["roomba_params.yaml"],
+    visibility = ["//visibility:public"],
+)
