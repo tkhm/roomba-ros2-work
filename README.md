@@ -37,9 +37,6 @@ bazel build //...
 
 # Build with static analysis (clang-tidy)
 bazel build //... --config clang-tidy
-
-# Build for real hardware (enables serial driver compilation)
-bazel build //... --define=real_serial=true
 ```
 
 ---
@@ -50,7 +47,7 @@ bazel build //... --define=real_serial=true
 # Run all tests
 bazel test //...
 
-# Run by test level
+# Run unit tests only
 bazel test //libroomba/tests/...   # Level 1: unit tests (GoogleTest, no hardware)
 ```
 
@@ -90,23 +87,46 @@ bazel test //:format_check
 
 ## Running Nodes
 
-> This section will be updated as nodes are implemented (Phase 4 onward).
-
 ### Stub mode (no hardware required)
 
-<!-- Phase 4: roomba_node stub mode -->
-<!-- Phase 5: keyboard control stub mode -->
-<!-- Phase 7: Foxglove visualization -->
+```bash
+# Terminal 1: roomba_node (stub) + monitor_node
+bazel run //launch:roomba_keyboard_stub
+
+# Terminal 2: keyboard control
+bazel run //keyboard_node:keyboard_node
+```
 
 ### Real hardware mode
 
-<!-- Phase 8: real hardware operation -->
+Requires Roomba connected via serial. See [Hardware Setup](#hardware-setup).
+
+```bash
+# Terminal 1: roomba_node (real) + monitor_node
+bazel run //launch:roomba_keyboard
+
+# Terminal 2: keyboard control
+bazel run //keyboard_node:keyboard_node
+```
+
+### Keyboard controls
+
+| Key | Action |
+|---|---|
+| `w` | Forward |
+| `s` | Backward |
+| `a` | Spin left |
+| `d` | Spin right |
+| `Space` | Stop |
+| `q` | Quit |
+
+Auto-stop: Roomba stops automatically if no key is pressed for 500 ms.
 
 ---
 
 ## Foxglove Visualization
 
-> This section will be updated in Phase 7.
+> Will be added after Foxglove launch file is implemented.
 
 [Foxglove Studio](https://foxglove.dev/) can be used to visualize sensor data and drive commands in real time.
 Install `foxglove_bridge` on Raspberry Pi 5:
@@ -165,44 +185,55 @@ roomba-ros2-work/
 │   └── tests/
 │       └── roomba_oi_test.cpp    # GoogleTest (command encoding, sensor parsing)
 │
-├── roomba_node/              # Serial communication node (planned)
-├── keyboard_node/            # Keyboard teleoperation node (planned)
-├── monitor_node/             # Terminal dashboard node (planned)
+├── roomba_node/              # Serial communication node
+├── keyboard_node/            # Keyboard teleoperation node
+├── monitor_node/             # Terminal dashboard node
 │
 ├── config/
-│   └── roomba_params.yaml    # All node parameters (planned)
+│   └── roomba_params.yaml    # All node parameters
 └── launch/
-    ├── roomba_keyboard.py    # keyboard_node + roomba_node (planned)
-    ├── roomba_monitor.py     # + monitor_node (planned)
-    └── roomba_foxglove.py    # + foxglove_bridge (planned)
+    ├── roomba_keyboard.py       # roomba_node (real) + monitor_node
+    └── roomba_keyboard_stub.py  # roomba_node (stub) + monitor_node
 ```
 
 ---
 
 ## Hardware Setup
 
-> This section will be updated in Phase 8 after real hardware verification.
-
 ### Serial connection
 
 Roomba 600 series uses a 7-pin Mini-DIN connector.
-Connect Raspberry Pi 5 UART pins to the Roomba serial port via the cable.
 
-Expected device: `/dev/ttyS0` or `/dev/ttyAMA0` (verify with `ls /dev/tty*`)
+**Using a USB-to-serial (USB-FTDI) cable** (verified on Raspberry Pi 5):
 
-### Enable UART on Raspberry Pi 5
+Connect the cable between the Raspberry Pi USB port and the Roomba Mini-DIN connector.
+The device appears as `/dev/ttyUSB0` (verify with `ls /dev/ttyUSB*`).
 
-Edit `/boot/firmware/config.txt`:
+```bash
+# Add your user to the dialout group to access the device without sudo
+sudo usermod -a -G dialout $USER
+# Log out and back in for the change to take effect
+```
+
+Update `config/roomba_params.yaml` with the correct device name:
+
+```yaml
+roomba_node:
+  ros__parameters:
+    serial_port: "/dev/ttyUSB0"
+```
+
+**Using a GPIO UART (direct wiring):**
+
+Enable UART on Raspberry Pi 5 by editing `/boot/firmware/config.txt`:
 
 ```
 enable_uart=1
 ```
 
-Reboot and verify the device is available:
+Reboot and verify: `ls /dev/ttyAMA*`
 
-```bash
-ls /dev/ttyAMA*
-```
+The device name varies by Raspberry Pi model and OS configuration.
 
 ### Using `ros2 topic echo` with custom messages
 
