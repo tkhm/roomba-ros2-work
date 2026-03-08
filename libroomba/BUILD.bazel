@@ -6,7 +6,6 @@ cc_library(
 
 cc_library(
     name = "stub_serial_driver",
-    testonly = True,
     hdrs = ["include/stub_serial_driver.hpp"],
     visibility = ["//visibility:public"],
     deps = [":serial_driver"],
