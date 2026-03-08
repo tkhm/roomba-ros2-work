@@ -1,0 +1,34 @@
+# Roomba ROS2 node parameters
+# Loaded by launch files in launch/
+
+# --- roomba_node ---
+roomba_node:
+  ros__parameters:
+    # Serial port connected to Roomba Mini-DIN 7-pin connector
+    # Check with: ls /dev/ttyS* /dev/ttyAMA*
+    serial_port: "/dev/ttyS0"
+    use_stub: false
+
+    # Maximum wheel speed [mm/s] applied to both drive commands (0-500)
+    max_speed_mm_s: 200
+
+    # OI mode: "safe" (stops on cliff/bump) or "full" (all safety off)
+    oi_mode: "safe"
+
+# --- keyboard_node ---
+# Note: keyboard_node must be run in a separate terminal (requires stdin).
+#   bazel run //keyboard_node:keyboard_node
+keyboard_node:
+  ros__parameters:
+    # Forward/backward speed [mm/s]
+    forward_speed_mm_s: 150
+    # Spin turn speed [mm/s] (inner wheel reversed)
+    turn_speed_mm_s: 100
+    # Auto-stop delay [ms]: stop if no key pressed for this duration
+    auto_stop_ms: 500
+
+# --- monitor_node ---
+monitor_node:
+  ros__parameters:
+    # Dashboard refresh interval [ms]
+    refresh_rate_ms: 500

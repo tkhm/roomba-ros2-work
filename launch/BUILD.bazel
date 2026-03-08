@@ -1,0 +1,23 @@
+load("@com_github_mvukov_rules_ros2//ros2:launch.bzl", "ros2_launch")
+
+ros2_launch(
+    name = "roomba_keyboard",
+    launch_file = "roomba_keyboard.py",
+    data = ["//config:roomba_params"],
+    nodes = [
+        "//roomba_node",
+        "//monitor_node",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+ros2_launch(
+    name = "roomba_keyboard_stub",
+    launch_file = "roomba_keyboard_stub.py",
+    data = ["//config:roomba_params"],
+    nodes = [
+        "//roomba_node",
+        "//monitor_node",
+    ],
+    visibility = ["//visibility:public"],
+)
