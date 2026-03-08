@@ -6,7 +6,7 @@ roomba_node:
   ros__parameters:
     # Serial port connected to Roomba Mini-DIN 7-pin connector
     # Check with: ls /dev/ttyS* /dev/ttyAMA*
-    serial_port: "/dev/ttyS0"
+    serial_port: "/dev/ttyUSB0"
     use_stub: false
 
     # Maximum wheel speed [mm/s] applied to both drive commands (0-500)
