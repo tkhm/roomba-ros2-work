@@ -1,14 +1,14 @@
-"""Roomba keyboard teleoperation launch (stub mode, no hardware required).
+"""Roomba bringup launch (stub mode, no hardware required).
 
 Starts roomba_node with use_stub=true and monitor_node.
 Sensor data will not be published (stub Read returns nothing),
-but drive commands from keyboard_node are processed and logged.
+but drive commands from the operation source are processed and logged.
 
-    # Terminal 1: start nodes
-    bazel run //launch:roomba_keyboard_stub
+    # Terminal 1: bringup (stub)
+    bazel run //launch:roomba_bringup_stub
 
-    # Terminal 2: keyboard control
-    bazel run //keyboard_node:keyboard_node
+    # Terminal 2: operation source (choose one)
+    bazel run //keyboard_node:keyboard_node   # keyboard teleoperation
 """
 import os
 
