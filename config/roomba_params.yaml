@@ -32,3 +32,15 @@ monitor_node:
   ros__parameters:
     # Dashboard refresh interval [ms]
     refresh_rate_ms: 500
+
+# --- foxglove_bridge ---
+# Install: sudo apt install ros-jazzy-foxglove-bridge
+# Connect Foxglove Studio to: ws://<raspberry-pi-ip>:8765
+foxglove_bridge:
+  ros__parameters:
+    # WebSocket port
+    port: 8765
+    # Listen address (0.0.0.0 = all interfaces, including Wi-Fi)
+    address: "0.0.0.0"
+    # TLS (disabled for local network use)
+    tls: false

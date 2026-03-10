@@ -87,32 +87,45 @@ bazel test //:format_check
 
 ## Running Nodes
 
-### Stub mode (no hardware required)
+For full session setup (Foxglove, camera, recording), see **[docs/runbook.md](docs/runbook.md)**.
+
+### Quick start — stub mode (no hardware required)
 
 ```bash
 # Terminal 1: roomba_node (stub) + monitor_node
-bazel run //launch:roomba_keyboard_stub
+bazel run //launch:roomba_bringup_stub
 
-# Terminal 2: keyboard control
+# Terminal 2: operation source
 bazel run //keyboard_node:keyboard_node
 ```
 
-### Real hardware mode
+### Quick start — real hardware
 
 Requires Roomba connected via serial. See [Hardware Setup](#hardware-setup).
 
 ```bash
 # Terminal 1: roomba_node (real) + monitor_node
-bazel run //launch:roomba_keyboard
+bazel run //launch:roomba_bringup
 
-# Terminal 2: keyboard control
+# Terminal 2: operation source
 bazel run //keyboard_node:keyboard_node
 ```
+
+### Operation sources
+
+The bringup launch (`roomba_bringup`) starts `roomba_node` and `monitor_node` only.
+An operation source is started separately and can be swapped independently:
+
+| Operation source | Command |
+|---|---|
+| Keyboard teleoperation | `bazel run //keyboard_node:keyboard_node` |
+| Game controller (future) | `bazel run //joy_teleop_node:joy_teleop_node` |
+| Autonomous (future) | `bazel run //planner_node:planner_node` |
 
 ### Keyboard controls
 
 | Key | Action |
-|---|---|
+|-----|--------|
 | `w` | Forward |
 | `s` | Backward |
 | `a` | Spin left |
@@ -126,36 +139,110 @@ Auto-stop: Roomba stops automatically if no key is pressed for 500 ms.
 
 ## Foxglove Visualization
 
-> Will be added after Foxglove launch file is implemented.
-
 [Foxglove Studio](https://foxglove.dev/) can be used to visualize sensor data and drive commands in real time.
+
+### Setup
+
 Install `foxglove_bridge` on Raspberry Pi 5:
 
 ```bash
 sudo apt install ros-jazzy-foxglove-bridge
 ```
 
-Topics visualized in Foxglove:
+`foxglove_bridge` also requires `roomba_msgs` to be built with colcon (same as `ros2 topic echo`).
+See [Using `ros2 topic echo` with custom messages](#using-ros2-topic-echo-with-custom-messages).
+
+### Launch
+
+`foxglove_bridge` must be started in a **separate terminal** from the Bazel launch.
+Bazel overrides `AMENT_PREFIX_PATH` to its own generated setup, which does not include
+the system ROS2 typesupport libraries that `foxglove_bridge` requires.
+DDS topic discovery still works between Bazel-launched nodes and a standalone `foxglove_bridge` process.
+
+```bash
+./scripts/foxglove_bridge.sh
+```
+
+Then open [Foxglove Studio desktop app](https://foxglove.dev/download) and connect:
+
+1. Click **Open connection**
+2. Select **Foxglove WebSocket** (not "ROS 2" or "Rosbridge")
+3. Enter URL: `ws://<raspberry-pi-ip>:8765`
+
+> **Note:** The browser version of Foxglove Studio (foxglove.dev) cannot connect to `ws://`
+> due to browser mixed content restrictions (HTTPS page → non-TLS WebSocket).
+> Use the desktop app instead.
+
+### Topics visualized
 
 | Topic | Type | Display |
 |---|---|---|
-| `/roomba/sensors` | `roomba_msgs/RoombaSensors` | Bumper/cliff indicators, battery graph |
-| `/roomba/drive_command` | `roomba_msgs/DriveCommand` | Wheel velocity time series |
+| `/roomba/sensors` | `roomba_msgs/RoombaSensors` | Bumper/cliff indicators, battery voltage graph |
+| `/roomba/drive_command` | `roomba_msgs/DriveCommand` | Left/right wheel velocity time series |
+| `/image_raw/compressed` | `sensor_msgs/CompressedImage` | Camera feed (requires USB camera) |
 
-Camera images (`/image_raw`) can be added to the same Foxglove session in a future phase,
-enabling synchronized playback of camera footage and sensor data via `.mcap` recording.
+---
+
+## Camera (USB)
+
+### Setup
+
+Install `v4l2_camera` and compressed image transport on Raspberry Pi 5:
+
+```bash
+sudo apt install ros-jazzy-v4l2-camera ros-jazzy-compressed-image-transport
+```
+
+Add yourself to the `video` group (required once, then re-login):
+
+```bash
+sudo usermod -aG video $USER
+```
+
+### Usage
+
+Start the camera node in a separate terminal (outside Bazel, same as `foxglove_bridge`):
+
+```bash
+./scripts/camera.sh
+```
+
+Check the device path with `ls /dev/video*` if `/dev/video0` is not found.
+
+This publishes `/image_raw` and `/image_raw/compressed` (`sensor_msgs/CompressedImage`).
+
+**Why 640x480 @ 15fps:**
+- Resolution: sufficient to identify the Roomba and surroundings at 0.5–2m range,
+  both for post-session review and future camera-based Roomba tracking
+- Frame rate: Roomba's typical operating speed (~150–200 mm/s) is slow enough that
+  15fps captures motion without gaps; 30fps is overkill and doubles file size
+- Processing: Raspberry Pi 5 can run image recognition on this stream in real time,
+  leaving headroom for other nodes
+
+### Recording
+
+```bash
+./scripts/record.sh              # auto-named: session_YYYYMMDD_HHMMSS
+./scripts/record.sh my_session   # custom name → ~/bags/my_session/
+```
+
+Use `/image_raw/compressed` (JPEG) instead of `/image_raw` to keep file sizes manageable.
+Open the saved `.mcap` file in Foxglove Studio on Ubuntu to replay camera footage and sensor data in sync.
 
 ---
 
 ## ROS2 Topic Layout
 
 ```
-[keyboard_node]
+[operation source]           (keyboard_node / joy_teleop_node / planner_node)
   └─ /roomba/drive_command (DriveCommand) ──▶ [roomba_node] ──── UART ──── Roomba 600
                                                     │
                                                     └─ /roomba/sensors (RoombaSensors)
                                                               ├──▶ [monitor_node]
                                                               └──▶ [foxglove_bridge] ──▶ Foxglove Studio
+
+[v4l2_camera_node]
+  └─ /image_raw/compressed (CompressedImage) ──▶ [foxglove_bridge] ──▶ Foxglove Studio
 ```
 
 ---
@@ -168,9 +255,18 @@ roomba-ros2-work/
 ├── BUILD.bazel               # Root build file (clang-format, config_setting)
 ├── .bazelrc / .bazelversion  # Bazel configuration
 ├── .clang-format / .clang-tidy
+│
 ├── tools/
 │   ├── apply_clang_format.sh # bazel run //:format
 │   └── check_clang_format.sh # bazel test //:format_check
+│
+├── scripts/                  # Helper scripts for common operations
+│   ├── foxglove_bridge.sh    # Start foxglove_bridge
+│   ├── camera.sh             # Start USB camera node (640x480 @ 15fps)
+│   └── record.sh             # Start MCAP bag recording
+│
+├── docs/
+│   └── runbook.md            # Step-by-step operation guide
 │
 ├── roomba_msgs/              # Custom ROS2 message definitions
 │   └── msg/
@@ -192,8 +288,8 @@ roomba-ros2-work/
 ├── config/
 │   └── roomba_params.yaml    # All node parameters
 └── launch/
-    ├── roomba_keyboard.py       # roomba_node (real) + monitor_node
-    └── roomba_keyboard_stub.py  # roomba_node (stub) + monitor_node
+    ├── roomba_bringup.py       # roomba_node (real) + monitor_node
+    └── roomba_bringup_stub.py  # roomba_node (stub) + monitor_node
 ```
 
 ---
@@ -257,4 +353,4 @@ Work is separated into two categories:
 |---|---|
 | Build, unit tests (GoogleTest), format check | **Not required** |
 | Node operation with `use_stub:=true` | **Not required** |
-| Real hardware verification (Phase 8+) | **Required** |
+| Real hardware verification | **Required** |

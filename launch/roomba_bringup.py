@@ -1,13 +1,13 @@
-"""Roomba keyboard teleoperation launch (real hardware).
+"""Roomba bringup launch (real hardware).
 
 Starts roomba_node (real serial) and monitor_node (terminal dashboard).
-keyboard_node must be run separately because it requires stdin:
+An operation source must be started separately depending on the use case:
 
-    # Terminal 1: start nodes
-    bazel run //launch:roomba_keyboard
+    # Terminal 1: bringup
+    bazel run //launch:roomba_bringup
 
-    # Terminal 2: keyboard control
-    bazel run //keyboard_node:keyboard_node
+    # Terminal 2: operation source (choose one)
+    bazel run //keyboard_node:keyboard_node   # keyboard teleoperation
 """
 import os
 
