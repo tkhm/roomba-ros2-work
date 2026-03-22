@@ -19,3 +19,6 @@ int16 angle_degrees   # angle turned since last sensor read [degrees]
 # Battery (OI packets 25, 26)
 uint16 battery_voltage_mv  # battery voltage [mV]
 int16  battery_current_ma  # battery current [mA] (negative = discharging)
+
+# Wall sensor (OI packet 27) — analog IR reading on the right side of the robot
+uint16 wall_signal  # wall proximity signal [0-4095]; higher = closer to wall

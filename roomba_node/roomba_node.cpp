@@ -129,11 +129,14 @@ class LinuxSerialDriver : public roomba::SerialDriver {
 //   Packet 20 (Angle):       2 bytes  (signed, degrees)
 //   Packet 25 (Voltage):     2 bytes  (unsigned, mV)
 //   Packet 26 (Current):     2 bytes  (signed, mA)
-constexpr std::array<uint8_t, 6> kSensorPackets{
-    roomba::oi::kPacketBumpsDrops, roomba::oi::kPacketCliff,   roomba::oi::kPacketDistance,
-    roomba::oi::kPacketAngle,      roomba::oi::kPacketVoltage, roomba::oi::kPacketCurrent,
+//   Packet 27 (WallSignal):  2 bytes  (unsigned, 0-4095)
+constexpr std::array<uint8_t, 7> kSensorPackets{
+    roomba::oi::kPacketBumpsDrops,  roomba::oi::kPacketCliff,
+    roomba::oi::kPacketDistance,    roomba::oi::kPacketAngle,
+    roomba::oi::kPacketVoltage,     roomba::oi::kPacketCurrent,
+    roomba::oi::kPacketWallSignal,
 };
-constexpr std::size_t kSensorResponseBytes{10};
+constexpr std::size_t kSensorResponseBytes{12};
 
 // ===== RoombaNode =====
 class RoombaNode : public rclcpp::Node {
@@ -241,6 +244,7 @@ class RoombaNode : public rclcpp::Node {
     msg.angle_degrees = roomba::oi::ParseInt16(buf[4], buf[5]);
     msg.battery_voltage_mv = roomba::oi::ParseUint16(buf[6], buf[7]);
     msg.battery_current_ma = roomba::oi::ParseInt16(buf[8], buf[9]);
+    msg.wall_signal = roomba::oi::ParseUint16(buf[10], buf[11]);
 
     sensor_pub_->publish(msg);
   }

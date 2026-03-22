@@ -9,6 +9,7 @@ ros2_interface_library(
     name = "roomba_msgs",
     srcs = [
         "msg/DriveCommand.msg",
+        "msg/DriveMode.msg",
         "msg/RoombaSensors.msg",
     ],
     visibility = ["//visibility:public"],

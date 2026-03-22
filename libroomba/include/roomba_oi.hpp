@@ -78,6 +78,9 @@ inline constexpr uint8_t kPacketVoltage = 25;
 // Battery current (2 bytes, signed, mA; negative = discharging)
 inline constexpr uint8_t kPacketCurrent = 26;
 
+// Wall sensor analog signal (2 bytes, unsigned, 0–4095; higher = closer to wall)
+inline constexpr uint8_t kPacketWallSignal = 27;
+
 // ---------------------------------------------------------------------------
 // Command builders
 // ---------------------------------------------------------------------------

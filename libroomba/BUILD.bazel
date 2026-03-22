@@ -16,3 +16,9 @@ cc_library(
     hdrs = ["include/roomba_oi.hpp"],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "wall_follower",
+    hdrs = ["include/wall_follower.hpp"],
+    visibility = ["//visibility:public"],
+)

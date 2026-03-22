@@ -6,6 +6,8 @@ ros2_launch(
     data = ["//config:roomba_params"],
     nodes = [
         "//roomba_node",
+        "//drive_mux_node",
+        "//planner_node",
         "//monitor_node",
     ],
     visibility = ["//visibility:public"],
@@ -17,7 +19,10 @@ ros2_launch(
     data = ["//config:roomba_params"],
     nodes = [
         "//roomba_node",
+        "//drive_mux_node",
+        "//planner_node",
         "//monitor_node",
     ],
     visibility = ["//visibility:public"],
 )
+

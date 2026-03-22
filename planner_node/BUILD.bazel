@@ -1,0 +1,12 @@
+load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_binary")
+
+ros2_cpp_binary(
+    name = "planner_node",
+    srcs = ["planner_node.cpp"],
+    deps = [
+        "//libroomba:wall_follower",
+        "//roomba_msgs:cpp_roomba_msgs",
+        "@ros2_rclcpp//:rclcpp",
+    ],
+    visibility = ["//visibility:public"],
+)
