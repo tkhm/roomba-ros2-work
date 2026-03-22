@@ -21,3 +21,15 @@ cc_test(
         "@googletest//:gtest_main",
     ],
 )
+
+cc_test(
+    name = "wall_follower_test",
+    size = "small",
+    testonly = True,
+    srcs = ["wall_follower_test.cpp"],
+    deps = [
+        "//libroomba:wall_follower",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
