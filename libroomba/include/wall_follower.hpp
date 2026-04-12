@@ -36,10 +36,16 @@ struct WallFollowerConfig {
   // Typical range: 50–200 (tune for actual wall distance).
   uint16_t target_wall_signal{100};
 
-  // Proportional gain for wall distance P-controller.
-  // correction = kp * (target - actual)
+  // Proportional gain for wall distance PD-controller.
+  // correction = kp * error + kd * (error - prev_error)
   // Applied as: left += correction, right -= correction.
   float kp{0.5F};
+
+  // Derivative gain.  Damps oscillation by opposing rapid changes in error.
+  // When the robot is approaching the wall quickly, kd adds extra left correction
+  // to slow the approach.  Start at 0 (pure P) and increase gradually.
+  // Typical useful range: 5–20 at 20 Hz update rate.
+  float kd{0.0F};
 
   // Emergency avoidance threshold [wall_signal units].
   // When wall_signal exceeds this value the P-controller is bypassed and a
@@ -144,6 +150,7 @@ class WallFollower {
     }
     if (sensors.wall_signal >= config_.wall_detect_threshold) {
       cliff_count_ = 0;
+      prev_error_ = 0.0F;  // reset D term to avoid spike on entry
       state_ = State::kFollowing;
       return;
     }
@@ -177,11 +184,16 @@ class WallFollower {
       speeds_.right_mm_s = config_.emergency_turn_speed_mm_s;
       return;
     }
-    // Normal P-control
+    // PD-control: proportional + derivative
+    // D term damps oscillation: when wall is approaching fast, extra left
+    // correction fires before the robot actually reaches the wall.
     float error{static_cast<float>(config_.target_wall_signal) -
                 static_cast<float>(sensors.wall_signal)};
+    float d_error{error - prev_error_};
+    prev_error_ = error;
     auto correction{static_cast<int16_t>(std::clamp(
-        config_.kp * error, static_cast<float>(-config_.max_correction_mm_s),
+        config_.kp * error + config_.kd * d_error,
+        static_cast<float>(-config_.max_correction_mm_s),
         static_cast<float>(config_.max_correction_mm_s)))};
     speeds_.left_mm_s =
         std::clamp(static_cast<int16_t>(config_.base_speed_mm_s + correction),
@@ -204,10 +216,11 @@ class WallFollower {
       speeds_.left_mm_s = static_cast<int16_t>(-config_.recovery_turn_speed_mm_s);
       speeds_.right_mm_s = config_.recovery_turn_speed_mm_s;
     } else {
-      // Recovery complete: return to FOLLOWING so P-control can re-acquire wall
+      // Recovery complete: return to FOLLOWING so PD-control can re-acquire wall
       speeds_ = {0, 0};
       recovery_elapsed_ms_ = 0;
       cliff_count_ = 0;
+      prev_error_ = 0.0F;  // reset D term to avoid spike on entry
       state_ = State::kFollowing;
     }
   }
@@ -223,6 +236,7 @@ class WallFollower {
   WheelSpeeds speeds_{};
   int32_t recovery_elapsed_ms_{0};
   int32_t cliff_count_{0};
+  float prev_error_{0.0F};
 };
 
 }  // namespace roomba
