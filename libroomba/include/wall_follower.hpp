@@ -133,8 +133,8 @@ class WallFollower {
  private:
   // Returns true if cliff has been detected for cliff_debounce_count cycles.
   bool CliffConfirmed(const WallFollowerSensors& sensors) {
-    bool any_cliff{sensors.cliff_left || sensors.cliff_front_left ||
-                   sensors.cliff_front_right || sensors.cliff_right};
+    bool any_cliff{sensors.cliff_left || sensors.cliff_front_left || sensors.cliff_front_right ||
+                   sensors.cliff_right};
     if (any_cliff) {
       cliff_count_ = std::min(cliff_count_ + 1, config_.cliff_debounce_count);
     } else {
@@ -192,15 +192,12 @@ class WallFollower {
     float d_error{error - prev_error_};
     prev_error_ = error;
     auto correction{static_cast<int16_t>(std::clamp(
-        config_.kp * error + config_.kd * d_error,
-        static_cast<float>(-config_.max_correction_mm_s),
+        config_.kp * error + config_.kd * d_error, static_cast<float>(-config_.max_correction_mm_s),
         static_cast<float>(config_.max_correction_mm_s)))};
-    speeds_.left_mm_s =
-        std::clamp(static_cast<int16_t>(config_.base_speed_mm_s + correction),
-                   static_cast<int16_t>(-500), static_cast<int16_t>(500));
-    speeds_.right_mm_s =
-        std::clamp(static_cast<int16_t>(config_.base_speed_mm_s - correction),
-                   static_cast<int16_t>(-500), static_cast<int16_t>(500));
+    speeds_.left_mm_s = std::clamp(static_cast<int16_t>(config_.base_speed_mm_s + correction),
+                                   static_cast<int16_t>(-500), static_cast<int16_t>(500));
+    speeds_.right_mm_s = std::clamp(static_cast<int16_t>(config_.base_speed_mm_s - correction),
+                                    static_cast<int16_t>(-500), static_cast<int16_t>(500));
   }
 
   void UpdateRecovering(int32_t elapsed_ms) {
@@ -210,8 +207,7 @@ class WallFollower {
       // Phase 1: straight reverse for clearance
       speeds_.left_mm_s = static_cast<int16_t>(-config_.recovery_backup_speed_mm_s);
       speeds_.right_mm_s = static_cast<int16_t>(-config_.recovery_backup_speed_mm_s);
-    } else if (recovery_elapsed_ms_ <
-               config_.recovery_backup_ms + config_.recovery_turn_ms) {
+    } else if (recovery_elapsed_ms_ < config_.recovery_backup_ms + config_.recovery_turn_ms) {
       // Phase 2: spin left to reorient
       speeds_.left_mm_s = static_cast<int16_t>(-config_.recovery_turn_speed_mm_s);
       speeds_.right_mm_s = config_.recovery_turn_speed_mm_s;

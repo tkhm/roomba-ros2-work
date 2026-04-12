@@ -115,7 +115,7 @@ inline constexpr uint8_t kBitCliffLeft{0x08U};
 // Build a DRIVE_DIRECT command (5 bytes).
 // left_mm_s, right_mm_s: clamped to [-500, 500] mm/s.
 inline std::array<uint8_t, kDriveDirectCmdSize> BuildDriveDirectCmd(int16_t left_mm_s,
-                                                                     int16_t right_mm_s) {
+                                                                    int16_t right_mm_s) {
   left_mm_s = std::clamp(left_mm_s, kMinWheelSpeedMmS, kMaxWheelSpeedMmS);
   right_mm_s = std::clamp(right_mm_s, kMinWheelSpeedMmS, kMaxWheelSpeedMmS);
   return {
@@ -159,8 +159,8 @@ struct BumpsDrops {
 
 // Parse a Bumps and Wheel Drops byte (packet 7).
 inline BumpsDrops ParseBumpsDrops(uint8_t byte) {
-  return {(byte & kBitBumpRight) != 0, (byte & kBitBumpLeft) != 0,
-          (byte & kBitWheelDropRight) != 0, (byte & kBitWheelDropLeft) != 0};
+  return {(byte & kBitBumpRight) != 0, (byte & kBitBumpLeft) != 0, (byte & kBitWheelDropRight) != 0,
+          (byte & kBitWheelDropLeft) != 0};
 }
 
 // Parsed cliff sensor flags from packet 9.

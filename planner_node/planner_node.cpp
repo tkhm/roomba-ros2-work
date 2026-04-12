@@ -35,22 +35,22 @@ class PlannerNode : public rclcpp::Node {
     cfg.kd = static_cast<float>(declare_parameter("kd", static_cast<double>(cfg.kd)));
     cfg.search_turn_bias_mm_s =
         static_cast<int16_t>(declare_parameter("search_turn_bias_mm_s", cfg.search_turn_bias_mm_s));
-    cfg.wall_detect_threshold =
-        static_cast<uint16_t>(declare_parameter("wall_detect_threshold", cfg.wall_detect_threshold));
+    cfg.wall_detect_threshold = static_cast<uint16_t>(
+        declare_parameter("wall_detect_threshold", cfg.wall_detect_threshold));
     cfg.max_correction_mm_s =
         static_cast<int16_t>(declare_parameter("max_correction_mm_s", cfg.max_correction_mm_s));
-    cfg.cliff_debounce_count = static_cast<int32_t>(
-        declare_parameter("cliff_debounce_count", cfg.cliff_debounce_count));
+    cfg.cliff_debounce_count =
+        static_cast<int32_t>(declare_parameter("cliff_debounce_count", cfg.cliff_debounce_count));
     cfg.wall_too_close_threshold = static_cast<uint16_t>(
         declare_parameter("wall_too_close_threshold", cfg.wall_too_close_threshold));
     cfg.emergency_turn_speed_mm_s = static_cast<int16_t>(
         declare_parameter("emergency_turn_speed_mm_s", cfg.emergency_turn_speed_mm_s));
-    cfg.recovery_backup_ms = static_cast<int32_t>(
-        declare_parameter("recovery_backup_ms", cfg.recovery_backup_ms));
+    cfg.recovery_backup_ms =
+        static_cast<int32_t>(declare_parameter("recovery_backup_ms", cfg.recovery_backup_ms));
     cfg.recovery_backup_speed_mm_s = static_cast<int16_t>(
         declare_parameter("recovery_backup_speed_mm_s", cfg.recovery_backup_speed_mm_s));
-    cfg.recovery_turn_ms = static_cast<int32_t>(
-        declare_parameter("recovery_turn_ms", cfg.recovery_turn_ms));
+    cfg.recovery_turn_ms =
+        static_cast<int32_t>(declare_parameter("recovery_turn_ms", cfg.recovery_turn_ms));
     cfg.recovery_turn_speed_mm_s = static_cast<int16_t>(
         declare_parameter("recovery_turn_speed_mm_s", cfg.recovery_turn_speed_mm_s));
 
@@ -61,8 +61,7 @@ class PlannerNode : public rclcpp::Node {
     // Conversion: wall_signal = max(0, tof_max_range_mm - distance_mm)
     // so that closer distance → higher signal, matching P-controller expectations.
     use_tof_ = declare_parameter("use_tof", false);
-    tof_max_range_mm_ =
-        static_cast<uint16_t>(declare_parameter("tof_max_range_mm", 400));
+    tof_max_range_mm_ = static_cast<uint16_t>(declare_parameter("tof_max_range_mm", 400));
 
     wall_follower_ = std::make_unique<WallFollower>(cfg);
 
@@ -79,11 +78,9 @@ class PlannerNode : public rclcpp::Node {
 
     drive_pub_ = create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/cmd/planner", 10);
 
-    timer_ = create_wall_timer(std::chrono::milliseconds(update_rate_ms_),
-                               [this]() { OnTimer(); });
+    timer_ = create_wall_timer(std::chrono::milliseconds(update_rate_ms_), [this]() { OnTimer(); });
 
-    RCLCPP_INFO(get_logger(),
-                "PlannerNode started: base=%d mm/s, target_wall=%d, kp=%.2f",
+    RCLCPP_INFO(get_logger(), "PlannerNode started: base=%d mm/s, target_wall=%d, kp=%.2f",
                 cfg.base_speed_mm_s, cfg.target_wall_signal, cfg.kp);
   }
 
@@ -109,8 +106,7 @@ class PlannerNode : public rclcpp::Node {
     if (dist_mm == 0 || dist_mm >= tof_max_range_mm_) {
       latest_sensors_.wall_signal = 0;
     } else {
-      latest_sensors_.wall_signal =
-          static_cast<uint16_t>(tof_max_range_mm_ - dist_mm);
+      latest_sensors_.wall_signal = static_cast<uint16_t>(tof_max_range_mm_ - dist_mm);
     }
   }
 
@@ -128,8 +124,8 @@ class PlannerNode : public rclcpp::Node {
     drive_pub_->publish(cmd);
 
     RCLCPP_DEBUG(get_logger(), "state=%d wall=%d L=%d R=%d",
-                 static_cast<int>(wall_follower_->GetState()),
-                 latest_sensors_.wall_signal, speeds.left_mm_s, speeds.right_mm_s);
+                 static_cast<int>(wall_follower_->GetState()), latest_sensors_.wall_signal,
+                 speeds.left_mm_s, speeds.right_mm_s);
   }
 
   std::unique_ptr<WallFollower> wall_follower_;

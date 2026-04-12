@@ -8,7 +8,9 @@ namespace roomba_ros2::test {
 // Helpers
 // ---------------------------------------------------------------------------
 
-roomba_ros2::WallFollowerSensors NoSensors() { return {}; }
+roomba_ros2::WallFollowerSensors NoSensors() {
+  return {};
+}
 
 roomba_ros2::WallFollowerSensors WithWall(uint16_t signal) {
   roomba_ros2::WallFollowerSensors s;

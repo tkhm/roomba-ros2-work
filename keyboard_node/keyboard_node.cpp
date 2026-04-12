@@ -44,13 +44,14 @@ class KeyboardNode : public rclcpp::Node {
         static_cast<int16_t>(static_cast<int>(declare_parameter("turn_speed_mm_s", 100)));
     auto_stop_ms_ = static_cast<double>(static_cast<int>(declare_parameter("auto_stop_ms", 500)));
 
-    drive_pub_ =
-        create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/cmd/keyboard", 10);
+    drive_pub_ = create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/cmd/keyboard", 10);
     mode_pub_ = create_publisher<roomba_msgs::msg::DriveMode>("/roomba/mode", 10);
 
     // Disable canonical mode and echo for raw key input
     tcgetattr(STDIN_FILENO, &old_tio_);
-    struct termios new_tio{old_tio_};
+    struct termios new_tio {
+      old_tio_
+    };
     new_tio.c_lflag &= ~static_cast<tcflag_t>(ICANON | ECHO);
     new_tio.c_cc[VMIN] = 0;   // return immediately even with 0 chars
     new_tio.c_cc[VTIME] = 0;  // no timeout
@@ -79,7 +80,9 @@ class KeyboardNode : public rclcpp::Node {
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(STDIN_FILENO, &fds);
-    struct timeval tv{0, 0};
+    struct timeval tv {
+      0, 0
+    };
     return select(STDIN_FILENO + 1, &fds, nullptr, nullptr, &tv) > 0 &&
            read(STDIN_FILENO, c, 1) == 1;
   }
@@ -225,7 +228,7 @@ class KeyboardNode : public rclcpp::Node {
   rclcpp::Time last_input_;
   bool input_received_{false};
 
-  struct termios old_tio_{};
+  struct termios old_tio_ {};
 
   rclcpp::Publisher<roomba_msgs::msg::DriveCommand>::SharedPtr drive_pub_;
   rclcpp::Publisher<roomba_msgs::msg::DriveMode>::SharedPtr mode_pub_;
