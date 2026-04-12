@@ -6,6 +6,7 @@ ros2_launch(
     data = ["//config:roomba_params"],
     nodes = [
         "//roomba_node",
+        "//tof_node",
         "//drive_mux_node",
         "//planner_node",
         "//monitor_node",
@@ -19,6 +20,7 @@ ros2_launch(
     data = ["//config:roomba_params"],
     nodes = [
         "//roomba_node",
+        "//tof_node",
         "//drive_mux_node",
         "//planner_node",
         "//monitor_node",

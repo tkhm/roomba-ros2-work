@@ -1,8 +1,7 @@
-"""Roomba bringup launch (stub mode, no hardware required).
+"""Roomba bringup launch (stub mode: Roomba stub, real ToF sensor).
 
-Starts roomba_node with use_stub=true and monitor_node.
-Sensor data will not be published (stub Read returns nothing),
-but drive commands from the operation source are processed and logged.
+roomba_node runs with use_stub=true (no Roomba required).
+tof_node uses the real VL53L1X sensor (use_stub=false from roomba_params.yaml).
 
     # Terminal 1: bringup (stub)
     bazel run //launch:roomba_bringup_stub
@@ -28,6 +27,13 @@ def generate_launch_description():
             output='log',
             name='roomba_node',
             parameters=[params_file, stub_overrides],
+        ),
+        # tof_node uses the real VL53L1X sensor (use_stub from YAML = false)
+        launch_ros.actions.Node(
+            executable='tof_node/tof_node',
+            output='log',
+            name='tof_node',
+            parameters=[params_file],
         ),
         launch_ros.actions.Node(
             executable='drive_mux_node/drive_mux_node',

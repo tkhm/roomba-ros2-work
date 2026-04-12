@@ -5,6 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "roomba_msgs/msg/drive_command.hpp"
 #include "roomba_msgs/msg/roomba_sensors.hpp"
+#include "std_msgs/msg/u_int16.hpp"
 
 namespace {
 
@@ -60,6 +61,10 @@ class MonitorNode : public rclcpp::Node {
         "/roomba/drive_command", 10,
         [this](roomba_msgs::msg::DriveCommand::UniquePtr msg) { drive_ = *msg; });
 
+    tof_sub_ = create_subscription<std_msgs::msg::UInt16>(
+        "/tof/distance_mm", 10,
+        [this](std_msgs::msg::UInt16::UniquePtr msg) { tof_distance_mm_ = msg->data; });
+
     int refresh_ms{static_cast<int>(declare_parameter("refresh_rate_ms", 500))};
     timer_ = create_wall_timer(std::chrono::milliseconds(refresh_ms), [this]() { Render(); });
 
@@ -101,6 +106,9 @@ class MonitorNode : public rclcpp::Node {
 
     printf("%s\n", kClear);
 
+    // ToF distance
+    printf("  ToF dist:  %4u mm%s\n", tof_distance_mm_, kClear);
+
     // Odometry
     printf("  Odometry:  dist=%+6d mm   angle=%+5d deg%s\n", s.distance_mm, s.angle_degrees,
            kClear);
@@ -124,15 +132,17 @@ class MonitorNode : public rclcpp::Node {
   }
 
   // Number of lines printed by Render() — must match the \n count above.
-  static constexpr int kLines = 14;
+  static constexpr int kLines = 15;
 
   bool rendered_{false};
 
   roomba_msgs::msg::RoombaSensors sensors_{};
   roomba_msgs::msg::DriveCommand drive_{};
+  uint16_t tof_distance_mm_{0};
 
   rclcpp::Subscription<roomba_msgs::msg::RoombaSensors>::SharedPtr sensors_sub_;
   rclcpp::Subscription<roomba_msgs::msg::DriveCommand>::SharedPtr drive_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt16>::SharedPtr tof_sub_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
