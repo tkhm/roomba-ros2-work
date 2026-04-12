@@ -17,9 +17,11 @@
 #include "roomba_msgs/msg/drive_command.hpp"
 #include "roomba_msgs/msg/roomba_sensors.hpp"
 
+namespace roomba_ros2 {
+
 // ===== LinuxSerialDriver =====
 // POSIX serial port driver for Roomba OI (115200 baud, 8N1).
-class LinuxSerialDriver : public roomba::SerialDriver {
+class LinuxSerialDriver : public SerialDriver {
  public:
   LinuxSerialDriver() = default;
   ~LinuxSerialDriver() override {
@@ -121,6 +123,8 @@ class LinuxSerialDriver : public roomba::SerialDriver {
   int fd_{-1};
 };
 
+}  // namespace roomba_ros2
+
 // ===== Sensor query configuration =====
 // QUERY_LIST requests these packets in order; response bytes follow the same order.
 //   Packet  7 (BumpsDrops):  1 byte
@@ -130,13 +134,17 @@ class LinuxSerialDriver : public roomba::SerialDriver {
 //   Packet 25 (Voltage):     2 bytes  (unsigned, mV)
 //   Packet 26 (Current):     2 bytes  (signed, mA)
 //   Packet 27 (WallSignal):  2 bytes  (unsigned, 0-4095)
+namespace {
 constexpr std::array<uint8_t, 7> kSensorPackets{
-    roomba::oi::kPacketBumpsDrops,  roomba::oi::kPacketCliff,
-    roomba::oi::kPacketDistance,    roomba::oi::kPacketAngle,
-    roomba::oi::kPacketVoltage,     roomba::oi::kPacketCurrent,
-    roomba::oi::kPacketWallSignal,
+    roomba_ros2::oi::kPacketBumpsDrops,  roomba_ros2::oi::kPacketCliff,
+    roomba_ros2::oi::kPacketDistance,    roomba_ros2::oi::kPacketAngle,
+    roomba_ros2::oi::kPacketVoltage,     roomba_ros2::oi::kPacketCurrent,
+    roomba_ros2::oi::kPacketWallSignal,
 };
 constexpr std::size_t kSensorResponseBytes{12};
+}  // namespace
+
+namespace roomba_ros2 {
 
 // ===== RoombaNode =====
 class RoombaNode : public rclcpp::Node {
@@ -156,7 +164,7 @@ class RoombaNode : public rclcpp::Node {
 
     // Create serial driver (stub or real)
     if (use_stub) {
-      serial_driver_ = std::make_unique<roomba::StubSerialDriver>();
+      serial_driver_ = std::make_unique<StubSerialDriver>();
       RCLCPP_INFO(get_logger(), "RoombaNode: stub mode (no serial I/O)");
     } else {
       auto driver{std::make_unique<LinuxSerialDriver>()};
@@ -170,12 +178,12 @@ class RoombaNode : public rclcpp::Node {
     }
 
     // Initialize Roomba OI
-    SendByte(roomba::oi::kStart);
+    SendByte(oi::kStart);
     if (oi_mode == "full") {
-      SendByte(roomba::oi::kFull);
+      SendByte(oi::kFull);
       RCLCPP_INFO(get_logger(), "RoombaNode: OI mode = Full");
     } else {
-      SendByte(roomba::oi::kSafe);
+      SendByte(oi::kSafe);
       RCLCPP_INFO(get_logger(), "RoombaNode: OI mode = Safe");
     }
 
@@ -195,9 +203,9 @@ class RoombaNode : public rclcpp::Node {
 
   ~RoombaNode() noexcept override {
     // Safety stop before shutdown
-    auto stop_cmd{roomba::oi::BuildDriveDirectCmd(0, 0)};
+    auto stop_cmd{oi::BuildDriveDirectCmd(0, 0)};
     serial_driver_->Write(stop_cmd.data(), stop_cmd.size());
-    SendByte(roomba::oi::kStop);
+    SendByte(oi::kStop);
     RCLCPP_INFO(get_logger(), "RoombaNode: safety stop on shutdown");
   }
 
@@ -209,13 +217,13 @@ class RoombaNode : public rclcpp::Node {
         std::clamp(msg->left_mm_s, static_cast<int16_t>(-max_speed_mm_s_), max_speed_mm_s_)};
     int16_t right{
         std::clamp(msg->right_mm_s, static_cast<int16_t>(-max_speed_mm_s_), max_speed_mm_s_)};
-    auto cmd{roomba::oi::BuildDriveDirectCmd(left, right)};
+    auto cmd{oi::BuildDriveDirectCmd(left, right)};
     serial_driver_->Write(cmd.data(), cmd.size());
   }
 
   void OnSensorTimer() {
     // Request sensor data
-    auto query{roomba::oi::BuildQueryListCmd(kSensorPackets)};
+    auto query{oi::BuildQueryListCmd(kSensorPackets)};
     serial_driver_->Write(query.data(), query.size());
 
     // Read response within 50 ms (one timer period)
@@ -228,8 +236,8 @@ class RoombaNode : public rclcpp::Node {
     }
 
     // Parse response
-    auto bumps{roomba::oi::ParseBumpsDrops(buf[0])};
-    auto cliff{roomba::oi::ParseCliff(buf[1])};
+    auto bumps{oi::ParseBumpsDrops(buf[0])};
+    auto cliff{oi::ParseCliff(buf[1])};
 
     roomba_msgs::msg::RoombaSensors msg;
     msg.bump_left = bumps.bump_left;
@@ -240,25 +248,27 @@ class RoombaNode : public rclcpp::Node {
     msg.cliff_front_left = cliff.cliff_front_left;
     msg.cliff_front_right = cliff.cliff_front_right;
     msg.cliff_right = cliff.cliff_right;
-    msg.distance_mm = roomba::oi::ParseInt16(buf[2], buf[3]);
-    msg.angle_degrees = roomba::oi::ParseInt16(buf[4], buf[5]);
-    msg.battery_voltage_mv = roomba::oi::ParseUint16(buf[6], buf[7]);
-    msg.battery_current_ma = roomba::oi::ParseInt16(buf[8], buf[9]);
-    msg.wall_signal = roomba::oi::ParseUint16(buf[10], buf[11]);
+    msg.distance_mm = oi::ParseInt16(buf[2], buf[3]);
+    msg.angle_degrees = oi::ParseInt16(buf[4], buf[5]);
+    msg.battery_voltage_mv = oi::ParseUint16(buf[6], buf[7]);
+    msg.battery_current_ma = oi::ParseInt16(buf[8], buf[9]);
+    msg.wall_signal = oi::ParseUint16(buf[10], buf[11]);
 
     sensor_pub_->publish(msg);
   }
 
-  std::unique_ptr<roomba::SerialDriver> serial_driver_;
+  std::unique_ptr<SerialDriver> serial_driver_;
   rclcpp::Subscription<roomba_msgs::msg::DriveCommand>::SharedPtr drive_sub_;
   rclcpp::Publisher<roomba_msgs::msg::RoombaSensors>::SharedPtr sensor_pub_;
   rclcpp::TimerBase::SharedPtr sensor_timer_;
   int16_t max_speed_mm_s_{200};
 };
 
+}  // namespace roomba_ros2
+
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<RoombaNode>());
+  rclcpp::spin(std::make_shared<roomba_ros2::RoombaNode>());
   rclcpp::shutdown();
   return 0;
 }

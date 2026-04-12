@@ -2,34 +2,34 @@
 
 #include <gtest/gtest.h>
 
-namespace roomba::test {
+namespace roomba_ros2::test {
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-roomba::WallFollowerSensors NoSensors() { return {}; }
+roomba_ros2::WallFollowerSensors NoSensors() { return {}; }
 
-roomba::WallFollowerSensors WithWall(uint16_t signal) {
-  roomba::WallFollowerSensors s;
+roomba_ros2::WallFollowerSensors WithWall(uint16_t signal) {
+  roomba_ros2::WallFollowerSensors s;
   s.wall_signal = signal;
   return s;
 }
 
-roomba::WallFollowerSensors WithBump() {
-  roomba::WallFollowerSensors s;
+roomba_ros2::WallFollowerSensors WithBump() {
+  roomba_ros2::WallFollowerSensors s;
   s.bump_left = true;
   return s;
 }
 
-roomba::WallFollowerSensors WithCliff() {
-  roomba::WallFollowerSensors s;
+roomba_ros2::WallFollowerSensors WithCliff() {
+  roomba_ros2::WallFollowerSensors s;
   s.cliff_front_right = true;
   return s;
 }
 
-roomba::WallFollowerSensors WithWallAndCliff(uint16_t signal) {
-  roomba::WallFollowerSensors s;
+roomba_ros2::WallFollowerSensors WithWallAndCliff(uint16_t signal) {
+  roomba_ros2::WallFollowerSensors s;
   s.wall_signal = signal;
   s.cliff_front_right = true;
   return s;
@@ -40,61 +40,61 @@ roomba::WallFollowerSensors WithWallAndCliff(uint16_t signal) {
 // ---------------------------------------------------------------------------
 
 TEST(WallFollowerTest, StartsInSearchingState) {
-  roomba::WallFollower wf;
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kSearching);
+  roomba_ros2::WallFollower wf;
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kSearching);
 }
 
 TEST(WallFollowerTest, SearchingAppliesRightBias) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.base_speed_mm_s = 100;
   cfg.search_turn_bias_mm_s = 30;
   cfg.wall_detect_threshold = 50;
 
-  roomba::WallFollower wf{cfg};
+  roomba_ros2::WallFollower wf{cfg};
   wf.Update(NoSensors(), 50);
 
   auto speeds{wf.GetWheelSpeeds()};
   EXPECT_EQ(speeds.left_mm_s, 100);
   EXPECT_EQ(speeds.right_mm_s, 70);
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kSearching);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kSearching);
 }
 
 TEST(WallFollowerTest, SearchingTransitionsToFollowingWhenWallDetected) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.wall_detect_threshold = 50;
 
-  roomba::WallFollower wf{cfg};
+  roomba_ros2::WallFollower wf{cfg};
   wf.Update(WithWall(60), 50);
 
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 }
 
 TEST(WallFollowerTest, SearchingTransitionsToRecoveringOnBump) {
-  roomba::WallFollower wf;
+  roomba_ros2::WallFollower wf;
   wf.Update(WithBump(), 50);
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kRecovering);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kRecovering);
 }
 
 // ---------------------------------------------------------------------------
 // FOLLOWING state — P-control
 // ---------------------------------------------------------------------------
 
-roomba::WallFollower MakeFollower(roomba::WallFollowerConfig cfg = {}) {
+roomba_ros2::WallFollower MakeFollower(roomba_ros2::WallFollowerConfig cfg = {}) {
   cfg.wall_detect_threshold = 50;
   cfg.wall_too_close_threshold = 300;
-  roomba::WallFollower wf{cfg};
+  roomba_ros2::WallFollower wf{cfg};
   wf.Update(WithWall(100), 50);
   return wf;
 }
 
 TEST(WallFollowerTest, FollowingAtTargetProducesNoCorrection) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.base_speed_mm_s = 100;
   cfg.target_wall_signal = 100;
   cfg.kp = 0.5F;
 
   auto wf{MakeFollower(cfg)};
-  ASSERT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 
   wf.Update(WithWall(100), 50);
 
@@ -104,7 +104,7 @@ TEST(WallFollowerTest, FollowingAtTargetProducesNoCorrection) {
 }
 
 TEST(WallFollowerTest, FollowingTooCloseCorrectsTurnLeft) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.base_speed_mm_s = 100;
   cfg.target_wall_signal = 100;
   cfg.kp = 1.0F;
@@ -119,7 +119,7 @@ TEST(WallFollowerTest, FollowingTooCloseCorrectsTurnLeft) {
 }
 
 TEST(WallFollowerTest, FollowingTooFarCorrectsTurnRight) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.base_speed_mm_s = 100;
   cfg.target_wall_signal = 100;
   cfg.kp = 1.0F;
@@ -134,7 +134,7 @@ TEST(WallFollowerTest, FollowingTooFarCorrectsTurnRight) {
 }
 
 TEST(WallFollowerTest, FollowingCorrectionClampedByMax) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.base_speed_mm_s = 100;
   cfg.target_wall_signal = 100;
   cfg.kp = 2.0F;
@@ -151,16 +151,16 @@ TEST(WallFollowerTest, FollowingCorrectionClampedByMax) {
 TEST(WallFollowerTest, FollowingTransitionsToRecoveringOnBump) {
   auto wf{MakeFollower()};
   wf.Update(WithBump(), 50);
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kRecovering);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kRecovering);
 }
 
 TEST(WallFollowerTest, FollowingTransitionsToSearchingWhenWallLost) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.wall_detect_threshold = 50;
 
   auto wf{MakeFollower(cfg)};
   wf.Update(WithWall(20), 50);
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kSearching);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kSearching);
 }
 
 // ---------------------------------------------------------------------------
@@ -168,25 +168,25 @@ TEST(WallFollowerTest, FollowingTransitionsToSearchingWhenWallLost) {
 // ---------------------------------------------------------------------------
 
 TEST(WallFollowerTest, CliffSingleCycleDoesNotTrigger) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.cliff_debounce_count = 3;
 
   auto wf{MakeFollower(cfg)};
   wf.Update(WithWallAndCliff(100), 50);  // count = 1
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 }
 
 TEST(WallFollowerTest, CliffTriggersAfterDebounceCount) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.cliff_debounce_count = 3;
 
   auto wf{MakeFollower(cfg)};
   wf.Update(WithWallAndCliff(100), 50);  // count = 1
   wf.Update(WithWallAndCliff(100), 50);  // count = 2
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 
   wf.Update(WithWallAndCliff(100), 50);  // count = 3 → triggers
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kSearching);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kSearching);
 
   auto s{wf.GetWheelSpeeds()};
   EXPECT_EQ(s.left_mm_s, 0);
@@ -194,7 +194,7 @@ TEST(WallFollowerTest, CliffTriggersAfterDebounceCount) {
 }
 
 TEST(WallFollowerTest, CliffCountResetsOnClear) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.cliff_debounce_count = 3;
 
   auto wf{MakeFollower(cfg)};
@@ -202,7 +202,7 @@ TEST(WallFollowerTest, CliffCountResetsOnClear) {
   wf.Update(WithWallAndCliff(100), 50);  // count = 2
   wf.Update(WithWall(100), 50);          // cleared → count = 0
   wf.Update(WithWallAndCliff(100), 50);  // count = 1 (fresh)
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 }
 
 // ---------------------------------------------------------------------------
@@ -210,7 +210,7 @@ TEST(WallFollowerTest, CliffCountResetsOnClear) {
 // ---------------------------------------------------------------------------
 
 TEST(WallFollowerTest, EmergencyAvoidanceFiresWhenTooClose) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.base_speed_mm_s = 100;
   cfg.target_wall_signal = 100;
   cfg.wall_too_close_threshold = 250;
@@ -222,11 +222,11 @@ TEST(WallFollowerTest, EmergencyAvoidanceFiresWhenTooClose) {
   auto speeds{wf.GetWheelSpeeds()};
   EXPECT_EQ(speeds.left_mm_s, 0);
   EXPECT_EQ(speeds.right_mm_s, 80);
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 }
 
 TEST(WallFollowerTest, EmergencyAvoidanceNotFiredBelowThreshold) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.base_speed_mm_s = 100;
   cfg.target_wall_signal = 100;
   cfg.wall_too_close_threshold = 250;
@@ -246,7 +246,7 @@ TEST(WallFollowerTest, EmergencyAvoidanceNotFiredBelowThreshold) {
 // ---------------------------------------------------------------------------
 
 TEST(WallFollowerTest, RecoveringPhase1StraightReverse) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.recovery_backup_ms = 600;
   cfg.recovery_backup_speed_mm_s = 80;
   cfg.recovery_turn_ms = 800;
@@ -254,7 +254,7 @@ TEST(WallFollowerTest, RecoveringPhase1StraightReverse) {
 
   auto wf{MakeFollower(cfg)};
   wf.Update(WithBump(), 50);
-  ASSERT_EQ(wf.GetState(), roomba::WallFollower::State::kRecovering);
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kRecovering);
 
   wf.Update(NoSensors(), 300);  // within backup phase
   auto s{wf.GetWheelSpeeds()};
@@ -263,7 +263,7 @@ TEST(WallFollowerTest, RecoveringPhase1StraightReverse) {
 }
 
 TEST(WallFollowerTest, RecoveringPhase2SpinLeft) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.recovery_backup_ms = 600;
   cfg.recovery_backup_speed_mm_s = 80;
   cfg.recovery_turn_ms = 800;
@@ -279,7 +279,7 @@ TEST(WallFollowerTest, RecoveringPhase2SpinLeft) {
 }
 
 TEST(WallFollowerTest, RecoveringCompletesAndTransitionsToFollowing) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.recovery_backup_ms = 100;
   cfg.recovery_turn_ms = 100;
 
@@ -287,7 +287,7 @@ TEST(WallFollowerTest, RecoveringCompletesAndTransitionsToFollowing) {
   wf.Update(WithBump(), 50);
 
   wf.Update(NoSensors(), 250);  // exceeds backup + turn
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 
   auto s{wf.GetWheelSpeeds()};
   EXPECT_EQ(s.left_mm_s, 0);
@@ -295,7 +295,7 @@ TEST(WallFollowerTest, RecoveringCompletesAndTransitionsToFollowing) {
 }
 
 TEST(WallFollowerTest, RecoveryElapsedResetsAfterCompletion) {
-  roomba::WallFollowerConfig cfg;
+  roomba_ros2::WallFollowerConfig cfg;
   cfg.recovery_backup_ms = 100;
   cfg.recovery_turn_ms = 100;
   cfg.recovery_backup_speed_mm_s = 80;
@@ -305,11 +305,11 @@ TEST(WallFollowerTest, RecoveryElapsedResetsAfterCompletion) {
   // First recovery
   wf.Update(WithBump(), 50);
   wf.Update(NoSensors(), 250);
-  EXPECT_EQ(wf.GetState(), roomba::WallFollower::State::kFollowing);
+  EXPECT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
 
   // Second bump starts a fresh recovery
   wf.Update(WithBump(), 50);
-  ASSERT_EQ(wf.GetState(), roomba::WallFollower::State::kRecovering);
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kRecovering);
 
   wf.Update(NoSensors(), 50);  // only 50 ms into new recovery → backup phase
   auto s{wf.GetWheelSpeeds()};
@@ -317,4 +317,4 @@ TEST(WallFollowerTest, RecoveryElapsedResetsAfterCompletion) {
   EXPECT_EQ(s.right_mm_s, -80);
 }
 
-}  // namespace roomba::test
+}  // namespace roomba_ros2::test

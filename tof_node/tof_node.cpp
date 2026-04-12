@@ -12,6 +12,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/u_int16.hpp"
 
+namespace roomba_ros2 {
+
 // ===== LinuxVl53l1xDriver =====
 // Linux I2C driver for the VL53L1X Time-of-Flight distance sensor.
 //
@@ -23,7 +25,7 @@
 //   1. Init() — write default config, clear interrupt, start continuous ranging
 //   2. ReadDistanceMm() — wait for data-ready flag, read 2-byte distance, clear interrupt
 //   3. Close() — stop ranging, close fd
-class LinuxVl53l1xDriver : public roomba::Vl53l1xDriver {
+class LinuxVl53l1xDriver : public Vl53l1xDriver {
  public:
   explicit LinuxVl53l1xDriver(std::string device, uint8_t address = kDefaultAddress)
       : device_{std::move(device)}, address_{address} {}
@@ -206,7 +208,7 @@ class TofNode : public rclcpp::Node {
     const int poll_rate_ms{static_cast<int>(declare_parameter("poll_rate_ms", 50))};
 
     if (use_stub) {
-      driver_ = std::make_unique<roomba::StubVl53l1xDriver>();
+      driver_ = std::make_unique<StubVl53l1xDriver>();
       RCLCPP_INFO(get_logger(), "TofNode: stub mode (distance=200 mm)");
     } else {
       driver_ = std::make_unique<LinuxVl53l1xDriver>(
@@ -249,15 +251,17 @@ class TofNode : public rclcpp::Node {
     RCLCPP_DEBUG(get_logger(), "ToF distance: %d mm", last_valid_dist_mm_);
   }
 
-  std::unique_ptr<roomba::Vl53l1xDriver> driver_;
+  std::unique_ptr<Vl53l1xDriver> driver_;
   rclcpp::Publisher<std_msgs::msg::UInt16>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   int16_t last_valid_dist_mm_{0};
 };
 
+}  // namespace roomba_ros2
+
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<TofNode>());
+  rclcpp::spin(std::make_shared<roomba_ros2::TofNode>());
   rclcpp::shutdown();
   return 0;
 }

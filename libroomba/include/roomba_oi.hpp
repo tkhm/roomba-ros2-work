@@ -13,7 +13,7 @@
 // Serial settings: 115200 baud, 8N1
 // All multi-byte values are big-endian (high byte first).
 
-namespace roomba::oi {
+namespace roomba_ros2::oi {
 
 // ---------------------------------------------------------------------------
 // Opcode constants
@@ -157,6 +157,6 @@ inline uint16_t ParseUint16(uint8_t high, uint8_t low) {
   return static_cast<uint16_t>((static_cast<uint16_t>(high) << 8) | low);
 }
 
-}  // namespace roomba::oi
+}  // namespace roomba_ros2::oi
 
 #endif  // LIBROOMBA_INCLUDE_ROOMBA_OI_HPP_

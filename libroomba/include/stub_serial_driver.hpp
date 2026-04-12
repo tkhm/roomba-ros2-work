@@ -9,7 +9,7 @@
 
 #include "libroomba/include/serial_driver.hpp"
 
-namespace roomba {
+namespace roomba_ros2 {
 
 // Test stub for SerialDriver.
 //
@@ -74,6 +74,6 @@ class StubSerialDriver : public SerialDriver {
   std::deque<uint8_t> read_queue_;
 };
 
-}  // namespace roomba
+}  // namespace roomba_ros2
 
 #endif  // LIBROOMBA_INCLUDE_STUB_SERIAL_DRIVER_HPP_

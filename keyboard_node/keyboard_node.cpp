@@ -28,6 +28,8 @@
 //   q            : quit
 //
 // Auto-stop: if no key is pressed for auto_stop_ms in MANUAL mode, Roomba stops.
+namespace roomba_ros2 {
+
 class KeyboardNode : public rclcpp::Node {
  public:
   KeyboardNode(const KeyboardNode&) = delete;
@@ -230,9 +232,11 @@ class KeyboardNode : public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
+}  // namespace roomba_ros2
+
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<KeyboardNode>());
+  rclcpp::spin(std::make_shared<roomba_ros2::KeyboardNode>());
   rclcpp::shutdown();
   return 0;
 }
