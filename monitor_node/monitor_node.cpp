@@ -49,6 +49,7 @@ namespace roomba_ros2 {
 // Run in a dedicated terminal to avoid mixing output with other nodes.
 class MonitorNode : public rclcpp::Node {
  public:
+  ~MonitorNode() override = default;
   MonitorNode(const MonitorNode&) = delete;
   MonitorNode& operator=(const MonitorNode&) = delete;
   MonitorNode(MonitorNode&&) = delete;
@@ -67,7 +68,7 @@ class MonitorNode : public rclcpp::Node {
         "/tof/distance_mm", 10,
         [this](std_msgs::msg::UInt16::UniquePtr msg) { tof_distance_mm_ = msg->data; });
 
-    int refresh_ms{static_cast<int>(declare_parameter("refresh_rate_ms", 500))};
+    int32_t refresh_ms{static_cast<int32_t>(declare_parameter("refresh_rate_ms", 500))};
     timer_ = create_wall_timer(std::chrono::milliseconds(refresh_ms), [this]() { Render(); });
 
     printf("\033[2J\033[H");
@@ -134,7 +135,7 @@ class MonitorNode : public rclcpp::Node {
   }
 
   // Number of lines printed by Render() — must match the \n count above.
-  static constexpr int kLines = 15;
+  static constexpr int32_t kLines{15};
 
   bool rendered_{false};
 

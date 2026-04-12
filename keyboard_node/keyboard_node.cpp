@@ -67,8 +67,8 @@ class KeyboardNode : public rclcpp::Node {
     tcsetattr(STDIN_FILENO, TCSANOW, &old_tio_);
     try {
       PublishDrive(0, 0);
-    } catch (...) {
-    }  // NOLINT(bugprone-empty-catch): publish after shutdown may fail
+    } catch (...) {  // NOLINT(bugprone-empty-catch): publish after shutdown may fail
+    }
     printf("\nKeyboard control stopped.\n");
     fflush(stdout);
   }

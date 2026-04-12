@@ -35,7 +35,8 @@ class StubSerialDriver : public SerialDriver {
 
   // Records all written bytes. Always returns true.
   bool Write(const uint8_t* data, std::size_t len) override {
-    for (std::size_t i = 0; i < len; ++i) {
+    for (std::size_t i{0}; i < len; ++i) {
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): SerialDriver interface uses raw pointer; std::span unavailable in C++17
       written_bytes_.push_back(data[i]);
     }
     return true;
@@ -45,7 +46,9 @@ class StubSerialDriver : public SerialDriver {
   std::size_t Read(uint8_t* buf, std::size_t len, uint32_t /*timeout_ms*/) override {
     std::size_t count{0};
     while (count < len && !read_queue_.empty()) {
-      buf[count++] = read_queue_.front();
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): SerialDriver interface uses raw pointer; std::span unavailable in C++17
+      buf[count] = read_queue_.front();
+      ++count;
       read_queue_.pop_front();
     }
     return count;
