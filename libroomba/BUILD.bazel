@@ -22,3 +22,16 @@ cc_library(
     hdrs = ["include/wall_follower.hpp"],
     visibility = ["//visibility:public"],
 )
+
+cc_library(
+    name = "vl53l1x_driver",
+    hdrs = ["include/vl53l1x_driver.hpp"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "stub_vl53l1x_driver",
+    hdrs = ["include/stub_vl53l1x_driver.hpp"],
+    visibility = ["//visibility:public"],
+    deps = [":vl53l1x_driver"],
+)

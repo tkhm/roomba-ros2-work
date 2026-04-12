@@ -33,6 +33,23 @@ monitor_node:
     # Dashboard refresh interval [ms]
     refresh_rate_ms: 500
 
+# --- tof_node (VL53L1X Time-of-Flight sensor) ---
+# Publishes /tof/distance_mm (std_msgs/UInt16) at poll_rate_ms interval.
+# Wiring: VL53L1X SDA→GPIO2(pin3), SCL→GPIO3(pin5), VCC→3.3V, GND→GND
+# Enable I2C on RPi Ubuntu: add "dtparam=i2c_arm=on" to /boot/firmware/config.txt and reboot
+# (raspi-config is Raspberry Pi OS only; not available on Ubuntu)
+# Check device: i2cdetect -y 1  (should show 0x29)
+tof_node:
+  ros__parameters:
+    # Linux I2C bus device (RPi5: /dev/i2c-1 for GPIO2/3)
+    i2c_device: "/dev/i2c-1"
+    # VL53L1X default I2C address (0x29 = 41)
+    i2c_address: 41
+    # false = real sensor, true = stub (returns 200 mm)
+    use_stub: false
+    # Sensor poll interval [ms]
+    poll_rate_ms: 50
+
 # --- planner_node (wall-following) ---
 planner_node:
   ros__parameters:

@@ -27,6 +27,12 @@ def generate_launch_description():
             parameters=[params_file],
         ),
         launch_ros.actions.Node(
+            executable='tof_node/tof_node',
+            output='log',
+            name='tof_node',
+            parameters=[params_file],
+        ),
+        launch_ros.actions.Node(
             executable='drive_mux_node/drive_mux_node',
             output='log',
             name='drive_mux',
