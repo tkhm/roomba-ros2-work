@@ -107,7 +107,7 @@ struct WheelSpeeds {
 
 class WallFollower {
  public:
-  enum class State { kSearching, kFollowing, kRecovering };
+  enum class State : uint8_t { kSearching, kFollowing, kRecovering };
 
   explicit WallFollower(WallFollowerConfig config = {}) : config_{config} {}
 

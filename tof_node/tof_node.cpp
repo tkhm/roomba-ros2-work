@@ -30,6 +30,7 @@ class LinuxVl53l1xDriver : public Vl53l1xDriver {
   explicit LinuxVl53l1xDriver(std::string device, uint8_t address = kDefaultAddress)
       : device_{std::move(device)}, address_{address} {}
 
+  // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.VirtualCall): no derived classes
   ~LinuxVl53l1xDriver() override { Close(); }
 
   LinuxVl53l1xDriver(const LinuxVl53l1xDriver&) = delete;
@@ -124,7 +125,7 @@ class LinuxVl53l1xDriver : public Vl53l1xDriver {
     buf[0] = static_cast<uint8_t>(kRegConfigStart >> 8);
     buf[1] = static_cast<uint8_t>(kRegConfigStart & 0xFF);
     for (std::size_t i{0}; i < kDefaultConfig.size(); ++i) {
-      buf[2 + i] = kDefaultConfig[i];
+      buf.at(2 + i) = kDefaultConfig.at(i);
     }
     if (write(fd_, buf.data(), buf.size()) != static_cast<ssize_t>(buf.size())) {
       return false;
@@ -203,18 +204,17 @@ class TofNode : public rclcpp::Node {
 
   TofNode() : Node("tof_node") {
     const std::string i2c_device{declare_parameter("i2c_device", std::string("/dev/i2c-1"))};
-    const int i2c_address{static_cast<int>(declare_parameter("i2c_address", 0x29))};
+    const uint8_t i2c_address{static_cast<uint8_t>(declare_parameter("i2c_address", 0x29))};
     const bool use_stub{declare_parameter("use_stub", false)};
-    const int poll_rate_ms{static_cast<int>(declare_parameter("poll_rate_ms", 50))};
+    const int32_t poll_rate_ms{static_cast<int32_t>(declare_parameter("poll_rate_ms", 50))};
 
     if (use_stub) {
       driver_ = std::make_unique<StubVl53l1xDriver>();
       RCLCPP_INFO(get_logger(), "TofNode: stub mode (distance=200 mm)");
     } else {
-      driver_ = std::make_unique<LinuxVl53l1xDriver>(
-          i2c_device, static_cast<uint8_t>(i2c_address));
+      driver_ = std::make_unique<LinuxVl53l1xDriver>(i2c_device, i2c_address);
       RCLCPP_INFO(get_logger(), "TofNode: real mode (%s, addr=0x%02X)",
-                  i2c_device.c_str(), i2c_address);
+                  i2c_device.c_str(), static_cast<unsigned int>(i2c_address));
     }
 
     if (!driver_->Init()) {

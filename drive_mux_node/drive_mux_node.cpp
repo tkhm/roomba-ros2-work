@@ -23,6 +23,7 @@
 // robot stops before the operator takes control.
 class DriveMuxNode : public rclcpp::Node {
  public:
+  ~DriveMuxNode() override = default;
   DriveMuxNode(const DriveMuxNode&) = delete;
   DriveMuxNode& operator=(const DriveMuxNode&) = delete;
   DriveMuxNode(DriveMuxNode&&) = delete;

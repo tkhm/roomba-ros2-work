@@ -103,13 +103,16 @@ class LinuxSerialDriver : public SerialDriver {
       FD_SET(fd_, &read_fds);
 
       struct timeval tv {};
+      // NOLINTNEXTLINE(google-runtime-int): tv_sec/tv_usec are POSIX long fields
       tv.tv_sec = static_cast<long>(timeout_ms / 1000);
+      // NOLINTNEXTLINE(google-runtime-int): tv_sec/tv_usec are POSIX long fields
       tv.tv_usec = static_cast<long>((timeout_ms % 1000) * 1000);
 
       int ret{select(fd_ + 1, &read_fds, nullptr, nullptr, &tv)};
       if (ret <= 0) {
         break;  // timeout or error
       }
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): POSIX read() requires raw pointer offset
       ssize_t n{read(fd_, buf + total, len - total)};
       if (n <= 0) {
         break;
@@ -158,7 +161,7 @@ class RoombaNode : public rclcpp::Node {
     // Declare parameters
     bool use_stub{declare_parameter("use_stub", false)};
     std::string serial_port{declare_parameter("serial_port", std::string("/dev/ttyS0"))};
-    int max_speed_raw{static_cast<int>(declare_parameter("max_speed_mm_s", 200))};
+    int32_t max_speed_raw{static_cast<int32_t>(declare_parameter("max_speed_mm_s", 200))};
     max_speed_mm_s_ = static_cast<int16_t>(std::clamp(max_speed_raw, 0, 500));
     std::string oi_mode{declare_parameter("oi_mode", std::string("safe"))};
 

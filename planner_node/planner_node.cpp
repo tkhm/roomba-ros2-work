@@ -18,6 +18,7 @@ namespace roomba_ros2 {
 //   Terminal 2: bazel run //planner_node:planner_node
 class PlannerNode : public rclcpp::Node {
  public:
+  ~PlannerNode() override = default;
   PlannerNode(const PlannerNode&) = delete;
   PlannerNode& operator=(const PlannerNode&) = delete;
   PlannerNode(PlannerNode&&) = delete;
@@ -38,20 +39,22 @@ class PlannerNode : public rclcpp::Node {
         static_cast<uint16_t>(declare_parameter("wall_detect_threshold", cfg.wall_detect_threshold));
     cfg.max_correction_mm_s =
         static_cast<int16_t>(declare_parameter("max_correction_mm_s", cfg.max_correction_mm_s));
-    cfg.cliff_debounce_count =
-        declare_parameter("cliff_debounce_count", cfg.cliff_debounce_count);
+    cfg.cliff_debounce_count = static_cast<int32_t>(
+        declare_parameter("cliff_debounce_count", cfg.cliff_debounce_count));
     cfg.wall_too_close_threshold = static_cast<uint16_t>(
         declare_parameter("wall_too_close_threshold", cfg.wall_too_close_threshold));
     cfg.emergency_turn_speed_mm_s = static_cast<int16_t>(
         declare_parameter("emergency_turn_speed_mm_s", cfg.emergency_turn_speed_mm_s));
-    cfg.recovery_backup_ms = declare_parameter("recovery_backup_ms", cfg.recovery_backup_ms);
+    cfg.recovery_backup_ms = static_cast<int32_t>(
+        declare_parameter("recovery_backup_ms", cfg.recovery_backup_ms));
     cfg.recovery_backup_speed_mm_s = static_cast<int16_t>(
         declare_parameter("recovery_backup_speed_mm_s", cfg.recovery_backup_speed_mm_s));
-    cfg.recovery_turn_ms = declare_parameter("recovery_turn_ms", cfg.recovery_turn_ms);
+    cfg.recovery_turn_ms = static_cast<int32_t>(
+        declare_parameter("recovery_turn_ms", cfg.recovery_turn_ms));
     cfg.recovery_turn_speed_mm_s = static_cast<int16_t>(
         declare_parameter("recovery_turn_speed_mm_s", cfg.recovery_turn_speed_mm_s));
 
-    update_rate_ms_ = declare_parameter("update_rate_ms", 50);  // 20 Hz default
+    update_rate_ms_ = static_cast<int32_t>(declare_parameter("update_rate_ms", 50));  // 20 Hz
 
     // ToF sensor integration.
     // When use_tof=true, /tof/distance_mm overrides the Roomba IR wall_signal.

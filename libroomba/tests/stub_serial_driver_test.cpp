@@ -26,7 +26,7 @@ TEST_F(StubSerialDriverTest, WriteRecordsBytes) {
   const auto& written = stub_.GetWrittenBytes();
   ASSERT_EQ(written.size(), data.size());
   for (std::size_t i{0}; i < data.size(); ++i) {
-    EXPECT_EQ(written[i], data[i]);
+    EXPECT_EQ(written.at(i), data.at(i));
   }
 }
 
@@ -58,7 +58,7 @@ TEST_F(StubSerialDriverTest, ReadConsumesQueueSequentially) {
   stub_.Read(buf.data(), 1, 10);
   EXPECT_EQ(buf[0], 0xBB);
 
-  std::size_t n = stub_.Read(buf.data(), 1, 10);
+  std::size_t n{stub_.Read(buf.data(), 1, 10)};
   EXPECT_EQ(n, 0);
 }
 
