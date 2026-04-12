@@ -40,6 +40,8 @@ const char* ActionLabel(int16_t left, int16_t right) {
 
 }  // namespace
 
+namespace roomba_ros2 {
+
 // ===== MonitorNode =====
 // Subscribes to /roomba/sensors and /roomba/drive_command and renders
 // a live terminal dashboard using ANSI escape codes.
@@ -146,9 +148,11 @@ class MonitorNode : public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
+}  // namespace roomba_ros2
+
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<MonitorNode>());
+  rclcpp::spin(std::make_shared<roomba_ros2::MonitorNode>());
   rclcpp::shutdown();
   return 0;
 }

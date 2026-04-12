@@ -7,6 +7,8 @@
 #include "roomba_msgs/msg/roomba_sensors.hpp"
 #include "std_msgs/msg/u_int16.hpp"
 
+namespace roomba_ros2 {
+
 // PlannerNode — wall-following autonomous mode.
 //
 // Subscribes to /roomba/sensors and publishes /roomba/drive_command using
@@ -23,7 +25,7 @@ class PlannerNode : public rclcpp::Node {
 
   PlannerNode() : Node("planner_node") {
     // Declare parameters (mirror WallFollowerConfig fields)
-    roomba::WallFollowerConfig cfg;
+    WallFollowerConfig cfg;
     cfg.base_speed_mm_s =
         static_cast<int16_t>(declare_parameter("base_speed_mm_s", cfg.base_speed_mm_s));
     cfg.target_wall_signal =
@@ -59,7 +61,7 @@ class PlannerNode : public rclcpp::Node {
     tof_max_range_mm_ =
         static_cast<uint16_t>(declare_parameter("tof_max_range_mm", 400));
 
-    wall_follower_ = std::make_unique<roomba::WallFollower>(cfg);
+    wall_follower_ = std::make_unique<WallFollower>(cfg);
 
     sensor_sub_ = create_subscription<roomba_msgs::msg::RoombaSensors>(
         "/roomba/sensors", 10,
@@ -127,21 +129,23 @@ class PlannerNode : public rclcpp::Node {
                  latest_sensors_.wall_signal, speeds.left_mm_s, speeds.right_mm_s);
   }
 
-  std::unique_ptr<roomba::WallFollower> wall_follower_;
+  std::unique_ptr<WallFollower> wall_follower_;
   rclcpp::Subscription<roomba_msgs::msg::RoombaSensors>::SharedPtr sensor_sub_;
   rclcpp::Subscription<std_msgs::msg::UInt16>::SharedPtr tof_sub_;
   rclcpp::Publisher<roomba_msgs::msg::DriveCommand>::SharedPtr drive_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
-  roomba::WallFollowerSensors latest_sensors_{};
+  WallFollowerSensors latest_sensors_{};
   bool has_sensors_{false};
   int32_t update_rate_ms_{50};
   bool use_tof_{false};
   uint16_t tof_max_range_mm_{400};
 };
 
+}  // namespace roomba_ros2
+
 int main(int argc, char* argv[]) {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<PlannerNode>());
+  rclcpp::spin(std::make_shared<roomba_ros2::PlannerNode>());
   rclcpp::shutdown();
   return 0;
 }

@@ -14,7 +14,7 @@
 //   int16_t mm = driver.ReadDistanceMm();  // < 0 on error
 //   driver.Close();
 
-namespace roomba {
+namespace roomba_ros2 {
 
 class Vl53l1xDriver {
  public:
@@ -37,6 +37,6 @@ class Vl53l1xDriver {
   virtual void Close() = 0;
 };
 
-}  // namespace roomba
+}  // namespace roomba_ros2
 
 #endif  // LIBROOMBA_INCLUDE_VL53L1X_DRIVER_HPP_

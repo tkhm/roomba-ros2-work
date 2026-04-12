@@ -15,7 +15,7 @@
 //   stub.SetDistance(150);          // inject 150 mm
 //   int16_t mm = stub.ReadDistanceMm();  // returns 150
 
-namespace roomba {
+namespace roomba_ros2 {
 
 class StubVl53l1xDriver : public Vl53l1xDriver {
  public:
@@ -32,6 +32,6 @@ class StubVl53l1xDriver : public Vl53l1xDriver {
   int16_t distance_mm_{200};  // default stub distance [mm]
 };
 
-}  // namespace roomba
+}  // namespace roomba_ros2
 
 #endif  // LIBROOMBA_INCLUDE_STUB_VL53L1X_DRIVER_HPP_

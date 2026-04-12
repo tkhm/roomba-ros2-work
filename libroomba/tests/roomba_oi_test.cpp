@@ -4,7 +4,7 @@
 
 #include <array>
 
-namespace roomba::oi::test {
+namespace roomba_ros2::oi::test {
 
 // ---------------------------------------------------------------------------
 // BuildDriveDirectCmd
@@ -181,4 +181,4 @@ TEST(ParseUint16Test, BatteryVoltage) {
   EXPECT_EQ(ParseUint16(0x4E, 0x20), 20000);
 }
 
-}  // namespace roomba::oi::test
+}  // namespace roomba_ros2::oi::test

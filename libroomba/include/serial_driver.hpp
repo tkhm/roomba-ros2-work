@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace roomba {
+namespace roomba_ros2 {
 
 // Abstract serial port interface for Roomba OI communication.
 // Real implementation: LinuxSerialDriver (in roomba_node.cpp)
@@ -35,6 +35,6 @@ class SerialDriver {
   virtual std::size_t Read(uint8_t* buf, std::size_t len, uint32_t timeout_ms) = 0;
 };
 
-}  // namespace roomba
+}  // namespace roomba_ros2
 
 #endif  // LIBROOMBA_INCLUDE_SERIAL_DRIVER_HPP_

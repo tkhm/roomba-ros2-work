@@ -25,7 +25,7 @@
 //   wf.Update(sensors, elapsed_ms);
 //   auto [left, right] = wf.GetWheelSpeeds();
 
-namespace roomba {
+namespace roomba_ros2 {
 
 // Configuration parameters for WallFollower (all tunable at runtime).
 struct WallFollowerConfig {
@@ -239,6 +239,6 @@ class WallFollower {
   float prev_error_{0.0F};
 };
 
-}  // namespace roomba
+}  // namespace roomba_ros2
 
 #endif  // LIBROOMBA_INCLUDE_WALL_FOLLOWER_HPP_

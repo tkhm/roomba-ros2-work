@@ -6,7 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace roomba::test {
+namespace roomba_ros2::test {
 
 class StubSerialDriverTest : public ::testing::Test {
  protected:
@@ -71,4 +71,4 @@ TEST_F(StubSerialDriverTest, ClearWrittenBytes) {
   EXPECT_TRUE(stub_.GetWrittenBytes().empty());
 }
 
-}  // namespace roomba::test
+}  // namespace roomba_ros2::test
