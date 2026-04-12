@@ -29,9 +29,8 @@ class DriveMuxNode : public rclcpp::Node {
   DriveMuxNode(DriveMuxNode&&) = delete;
   DriveMuxNode& operator=(DriveMuxNode&&) = delete;
 
-  DriveMuxNode() : Node("drive_mux") {
-    drive_pub_ =
-        create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/drive_command", 10);
+  DriveMuxNode() : Node("drive_mux_node") {
+    drive_pub_ = create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/drive_command", 10);
 
     keyboard_sub_ = create_subscription<roomba_msgs::msg::DriveCommand>(
         "/roomba/cmd/keyboard", 10,
