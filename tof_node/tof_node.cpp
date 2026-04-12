@@ -213,8 +213,8 @@ class TofNode : public rclcpp::Node {
       RCLCPP_INFO(get_logger(), "TofNode: stub mode (distance=200 mm)");
     } else {
       driver_ = std::make_unique<LinuxVl53l1xDriver>(i2c_device, i2c_address);
-      RCLCPP_INFO(get_logger(), "TofNode: real mode (%s, addr=0x%02X)",
-                  i2c_device.c_str(), static_cast<unsigned int>(i2c_address));
+      RCLCPP_INFO(get_logger(), "TofNode: real mode (%s, addr=0x%02X)", i2c_device.c_str(),
+                  static_cast<unsigned int>(i2c_address));
     }
 
     if (!driver_->Init()) {
@@ -223,8 +223,7 @@ class TofNode : public rclcpp::Node {
 
     pub_ = create_publisher<std_msgs::msg::UInt16>("/tof/distance_mm", 10);
 
-    timer_ = create_wall_timer(std::chrono::milliseconds(poll_rate_ms),
-                               [this]() { OnTimer(); });
+    timer_ = create_wall_timer(std::chrono::milliseconds(poll_rate_ms), [this]() { OnTimer(); });
   }
 
   ~TofNode() override {

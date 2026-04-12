@@ -112,7 +112,8 @@ class LinuxSerialDriver : public SerialDriver {
       if (ret <= 0) {
         break;  // timeout or error
       }
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): POSIX read() requires raw pointer offset
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): POSIX read() requires raw
+      // pointer offset
       ssize_t n{read(fd_, buf + total, len - total)};
       if (n <= 0) {
         break;
@@ -139,9 +140,9 @@ class LinuxSerialDriver : public SerialDriver {
 //   Packet 27 (WallSignal):  2 bytes  (unsigned, 0-4095)
 namespace {
 constexpr std::array<uint8_t, 7> kSensorPackets{
-    roomba_ros2::oi::kPacketBumpsDrops,  roomba_ros2::oi::kPacketCliff,
-    roomba_ros2::oi::kPacketDistance,    roomba_ros2::oi::kPacketAngle,
-    roomba_ros2::oi::kPacketVoltage,     roomba_ros2::oi::kPacketCurrent,
+    roomba_ros2::oi::kPacketBumpsDrops, roomba_ros2::oi::kPacketCliff,
+    roomba_ros2::oi::kPacketDistance,   roomba_ros2::oi::kPacketAngle,
+    roomba_ros2::oi::kPacketVoltage,    roomba_ros2::oi::kPacketCurrent,
     roomba_ros2::oi::kPacketWallSignal,
 };
 constexpr std::size_t kSensorResponseBytes{12};
