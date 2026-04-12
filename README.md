@@ -4,314 +4,204 @@ ROS2 / C++ / Bazel-based control system for iRobot Roomba 600 series,
 running on Raspberry Pi 5 via serial (UART) using the
 [Roomba Open Interface (OI)](https://edu.irobot.com/learning-library/roomba-open-interface) protocol.
 
-## System Overview
+The primary goal is hands-on experience with ROS2, C++17, and Bazel for hardware control —
+not to build a production cleaning robot.
 
-| Item | Details |
-|---|---|
-| Language | C++17 (nodes) / Python 3.12 (launch, tests) |
-| Build system | Bazel 8.4.1 (bzlmod) |
-| ROS2 | Jazzy ([rules_ros2](https://github.com/mvukov/rules_ros2)) |
-| Hardware | Raspberry Pi 5 |
-| Robot | iRobot Roomba 692 / 643 |
-| Communication | UART serial (Roomba Open Interface, 115200 baud) |
+---
 
 ## Prerequisites
 
-- Ubuntu 24.04 + ROS2 Jazzy
-- [Bazel 8.4.1](https://bazel.build/)
-- `clang-format` and `clang-tidy` (LLVM 18)
+**Hardware**
 
-```bash
-sudo apt install clang-format clang-tidy
-```
+| Item | Detail |
+|---|---|
+| Robot | iRobot Roomba 692 or 643 |
+| Computer | Raspberry Pi 5 |
+| Serial cable | USB-to-serial (USB-FTDI) cable to Roomba Mini-DIN 7-pin connector |
+| Distance sensor | VL53L1X ToF sensor (I2C, for wall-following mode) |
 
-> For real hardware setup on Raspberry Pi 5, see [Hardware Setup](#hardware-setup).
+**Software**
+
+| Item | Detail |
+|---|---|
+| OS | Ubuntu 24.04 |
+| ROS2 | Jazzy |
+| Build | [Bazel 8.4.1](https://bazel.build/) (bzlmod) |
+| Toolchain | clang-format + clang-tidy (LLVM 18): `sudo apt install clang-format clang-tidy` |
 
 ---
 
-## Build
+## Quick Start
+
+No hardware required — the stub mode simulates serial and sensor I/O.
 
 ```bash
-# Build all targets
+# 1. Build
 bazel build //...
 
-# Build with static analysis (clang-tidy)
-bazel build //... --config clang-tidy
-```
-
----
-
-## Test
-
-```bash
-# Run all tests
-bazel test //...
-
-# Run unit tests only
-bazel test //libroomba/tests/...   # Level 1: unit tests (GoogleTest, no hardware)
-```
-
-### Test levels
-
-| Level | Target | Framework | Hardware |
-|---|---|---|---|
-| Level 1 | libroomba (OI commands, serial driver) | GoogleTest | Not required |
-| Level 2 | Node topic I/O | launch_testing | Not required |
-| Level 3 | Multi-node pipeline | launch_testing | Not required |
-| Level 4 | Real hardware | Manual | **Required** |
-
-> Levels 2 and 3 will be added in later phases.
-
----
-
-## Code Style
-
-C++ source code follows [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-
-| Tool | Config |
-|---|---|
-| clang-format | [`.clang-format`](.clang-format) (BasedOnStyle: Google, ColumnLimit: 100) |
-| clang-tidy | [`.clang-tidy`](.clang-tidy) |
-
-File extensions: `.cpp` (implementation), `.hpp` (headers)
-
-```bash
-# Apply clang-format to all source files
-bazel run //:format
-
-# Check for clang-format violations (also included in bazel test //...)
-bazel test //:format_check
-```
-
----
-
-## Running Nodes
-
-For full session setup (Foxglove, camera, recording), see **[docs/runbook.md](docs/runbook.md)**.
-
-### Quick start — stub mode (no hardware required)
-
-```bash
-# Terminal 1: roomba_node (stub) + monitor_node
+# 2. Terminal 1: launch all infrastructure nodes (stub mode)
 bazel run //launch:roomba_bringup_stub
 
-# Terminal 2: operation source
+# 3. Terminal 2: keyboard control
 bazel run //keyboard_node:keyboard_node
 ```
 
-### Quick start — real hardware
-
-Requires Roomba connected via serial. See [Hardware Setup](#hardware-setup).
-
-```bash
-# Terminal 1: roomba_node (real) + monitor_node
-bazel run //launch:roomba_bringup
-
-# Terminal 2: operation source
-bazel run //keyboard_node:keyboard_node
-```
-
-### Operation sources
-
-The bringup launch (`roomba_bringup`) starts `roomba_node` and `monitor_node` only.
-An operation source is started separately and can be swapped independently:
-
-| Operation source | Command |
-|---|---|
-| Keyboard teleoperation | `bazel run //keyboard_node:keyboard_node` |
-| Game controller (future) | `bazel run //joy_teleop_node:joy_teleop_node` |
-| Autonomous (future) | `bazel run //planner_node:planner_node` |
-
-### Keyboard controls
+**Keyboard controls**
 
 | Key | Action |
-|-----|--------|
-| `w` | Forward |
-| `s` | Backward |
-| `a` | Spin left |
-| `d` | Spin right |
+|---|---|
+| `w` / `s` | Forward / Backward |
+| `a` / `d` | Spin left / Spin right |
 | `Space` | Stop |
+| `Tab` | Toggle MANUAL / WALL_FOLLOW mode |
 | `q` | Quit |
 
-Auto-stop: Roomba stops automatically if no key is pressed for 500 ms.
+Auto-stop fires after 500 ms of no input.
+In WALL_FOLLOW mode, drive keys are ignored; press `Tab` again to return to MANUAL.
+
+**Where to go next**
+
+- Real hardware: see [Hardware Setup](#hardware-setup)
+- Foxglove visualization, camera, bag recording: see [docs/runbook.md](docs/runbook.md)
+- Static analysis: `bazel build //... --config clang-tidy`
+- Unit tests: `bazel test //...`
 
 ---
 
-## Foxglove Visualization
+## Topic Architecture
 
-[Foxglove Studio](https://foxglove.dev/) can be used to visualize sensor data and drive commands in real time.
-
-### Setup
-
-Install `foxglove_bridge` on Raspberry Pi 5:
-
-```bash
-sudo apt install ros-jazzy-foxglove-bridge
+<!-- Generated by: python3 scripts/gen_topic_graph.py --exclude monitor_node -->
+```mermaid
+graph LR
+    subgraph Legend
+        _a[ ] -->|ROS2 topic| _b[ ]
+        _c[ ] -.->|hardware| _d[ ]
+    end
+    VL53L1X -.->|I2C| tof_node
+    roomba_node -.->|commands UART| Roomba
+    Roomba -.->|sensors UART| roomba_node
+    keyboard_node -->|"/roomba/cmd/keyboard"| drive_mux_node
+    planner_node -->|"/roomba/cmd/planner"| drive_mux_node
+    drive_mux_node -->|"/roomba/drive_command"| roomba_node
+    keyboard_node -->|"/roomba/mode"| drive_mux_node
+    roomba_node -->|"/roomba/sensors"| planner_node
+    tof_node -->|"/tof/distance_mm"| planner_node
+    %% excluded: monitor_node
 ```
 
-`foxglove_bridge` also requires `roomba_msgs` to be built with colcon (same as `ros2 topic echo`).
-See [Using `ros2 topic echo` with custom messages](#using-ros2-topic-echo-with-custom-messages).
+`drive_mux_node` forwards either the keyboard command or the planner command to `roomba_node`
+based on the current `/roomba/mode` (MANUAL=0 / WALL_FOLLOW=1 / FOLLOW_ROOMBA=2).
+Mode is toggled from `keyboard_node` via the `Tab` key.
 
-### Launch
+> `monitor_node` and `foxglove_bridge` also subscribe to `/roomba/sensors` — omitted for clarity.
 
-`foxglove_bridge` must be started in a **separate terminal** from the Bazel launch.
-Bazel overrides `AMENT_PREFIX_PATH` to its own generated setup, which does not include
-the system ROS2 typesupport libraries that `foxglove_bridge` requires.
-DDS topic discovery still works between Bazel-launched nodes and a standalone `foxglove_bridge` process.
+---
 
-```bash
-./scripts/foxglove_bridge.sh
-```
+## Project Layout
 
-Then open [Foxglove Studio desktop app](https://foxglove.dev/download) and connect:
-
-1. Click **Open connection**
-2. Select **Foxglove WebSocket** (not "ROS 2" or "Rosbridge")
-3. Enter URL: `ws://<raspberry-pi-ip>:8765`
-
-> **Note:** The browser version of Foxglove Studio (foxglove.dev) cannot connect to `ws://`
-> due to browser mixed content restrictions (HTTPS page → non-TLS WebSocket).
-> Use the desktop app instead.
-
-### Topics visualized
-
-| Topic | Type | Display |
+| Path | What it is | How to use |
 |---|---|---|
-| `/roomba/sensors` | `roomba_msgs/RoombaSensors` | Bumper/cliff indicators, battery voltage graph |
-| `/roomba/drive_command` | `roomba_msgs/DriveCommand` | Left/right wheel velocity time series |
-| `/image_raw/compressed` | `sensor_msgs/CompressedImage` | Camera feed (requires USB camera) |
+| `*_node/` | One directory per ROS2 node | `bazel run //<name>_node:<name>_node` |
+| `launch/` | Launch files that start node groups and load `config/roomba_params.yaml` | `bazel run //launch:roomba_bringup[_stub]` |
+| `scripts/` | Helper scripts for processes that must run **outside Bazel** (foxglove_bridge, camera, bag recording) | `./scripts/<name>.sh` directly |
+| `tools/` | clang-format scripts invoked by Bazel — not run directly | `bazel run //:format`, `bazel test //:format_check` |
+| `libroomba/` | ROS2-independent core library: serial HAL, OI protocol, wall-following algorithm | `bazel test //libroomba/tests/...` |
+| `roomba_msgs/` | Custom ROS2 message definitions (DriveCommand, RoombaSensors, DriveMode) | built automatically |
+| `config/` | YAML parameter file for all nodes | loaded by launch files |
+| `docs/runbook.md` | Full session procedures: Foxglove, camera, recording, replay | read directly |
 
 ---
 
-## Camera (USB)
+## Style & Guide
 
-### Setup
-
-Install `v4l2_camera` and compressed image transport on Raspberry Pi 5:
-
-```bash
-sudo apt install ros-jazzy-v4l2-camera ros-jazzy-compressed-image-transport
-```
-
-Add yourself to the `video` group (required once, then re-login):
+C++ code follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
+clang-format and clang-tidy enforce the rules automatically.
 
 ```bash
-sudo usermod -aG video $USER
+bazel run //:format                  # apply clang-format
+bazel test //:format_check           # check formatting (also runs in bazel test //...)
+bazel build //... --config clang-tidy  # static analysis
 ```
 
-### Usage
+File extensions are `.cpp` (implementation) and `.hpp` (headers).
+This differs from the reference implementation `togikaidrive-ros2` which uses `.cc`/`.h`.
 
-Start the camera node in a separate terminal (outside Bazel, same as `foxglove_bridge`):
+### Practices not caught by the tools
 
-```bash
-./scripts/camera.sh
+The following must be checked manually during code review:
+
+**Brace initialization** — Always use `{}`, never `= value`:
+
+```cpp
+int32_t count{0};        // good
+int32_t count = 0;       // bad
 ```
 
-Check the device path with `ls /dev/video*` if `/dev/video0` is not found.
+**Fixed-width integer types** — Use `int32_t`, `uint8_t`, `int16_t`, etc. instead of `int`.
+Exception: POSIX file descriptors (`int fd_`) follow the POSIX convention.
 
-This publishes `/image_raw` and `/image_raw/compressed` (`sensor_msgs/CompressedImage`).
+### clang-tidy suppressions
 
-**Why 640x480 @ 15fps:**
-- Resolution: sufficient to identify the Roomba and surroundings at 0.5–2m range,
-  both for post-session review and future camera-based Roomba tracking
-- Frame rate: Roomba's typical operating speed (~150–200 mm/s) is slow enough that
-  15fps captures motion without gaps; 30fps is overkill and doubles file size
-- Processing: Raspberry Pi 5 can run image recognition on this stream in real time,
-  leaving headroom for other nodes
+Three rules are suppressed globally in `.clang-tidy` because they conflict with this codebase's constraints:
 
-### Recording
+| Suppressed rule | Reason |
+|---|---|
+| `cppcoreguidelines-avoid-magic-numbers` | Config struct default values would all require named constants — impractical |
+| `cppcoreguidelines-pro-type-vararg` | POSIX terminal I/O (`printf`) is required |
+| `bugprone-easily-swappable-parameters` | OI-spec API pairs (e.g. `left_mm_s, right_mm_s`) cannot be reordered |
 
-```bash
-./scripts/record.sh              # auto-named: session_YYYYMMDD_HHMMSS
-./scripts/record.sh my_session   # custom name → ~/bags/my_session/
-```
+For localized violations forced by POSIX APIs, suppress inline with a reason:
 
-Use `/image_raw/compressed` (JPEG) instead of `/image_raw` to keep file sizes manageable.
-Open the saved `.mcap` file in Foxglove Studio on Ubuntu to replay camera footage and sensor data in sync.
-
----
-
-## ROS2 Topic Layout
-
-```
-[operation source]           (keyboard_node / joy_teleop_node / planner_node)
-  └─ /roomba/drive_command (DriveCommand) ──▶ [roomba_node] ──── UART ──── Roomba 600
-                                                    │
-                                                    └─ /roomba/sensors (RoombaSensors)
-                                                              ├──▶ [monitor_node]
-                                                              └──▶ [foxglove_bridge] ──▶ Foxglove Studio
-
-[v4l2_camera_node]
-  └─ /image_raw/compressed (CompressedImage) ──▶ [foxglove_bridge] ──▶ Foxglove Studio
+```cpp
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic): POSIX read() requires raw pointer offset
+ssize_t n{read(fd_, buf + total, len - total)};
 ```
 
 ---
 
-## Directory Structure
+## Conventions & Decisions
 
-```
-roomba-ros2-work/
-├── MODULE.bazel              # Bazel dependency definitions
-├── BUILD.bazel               # Root build file (clang-format, config_setting)
-├── .bazelrc / .bazelversion  # Bazel configuration
-├── .clang-format / .clang-tidy
-│
-├── tools/
-│   ├── apply_clang_format.sh # bazel run //:format
-│   └── check_clang_format.sh # bazel test //:format_check
-│
-├── scripts/                  # Helper scripts for common operations
-│   ├── foxglove_bridge.sh    # Start foxglove_bridge
-│   ├── camera.sh             # Start USB camera node (640x480 @ 15fps)
-│   └── record.sh             # Start MCAP bag recording
-│
-├── docs/
-│   └── runbook.md            # Step-by-step operation guide
-│
-├── roomba_msgs/              # Custom ROS2 message definitions
-│   └── msg/
-│       ├── DriveCommand.msg  # left_mm_s, right_mm_s
-│       └── RoombaSensors.msg # bumpers, cliff, odometry, battery
-│
-├── libroomba/                # Core library — ROS2-independent
-│   ├── include/
-│   │   ├── serial_driver.hpp     # SerialDriver abstract base (HAL)
-│   │   ├── stub_serial_driver.hpp
-│   │   └── roomba_oi.hpp         # OI command constants, builders, parsers
-│   └── tests/
-│       └── roomba_oi_test.cpp    # GoogleTest (command encoding, sensor parsing)
-│
-├── roomba_node/              # Serial communication node
-├── keyboard_node/            # Keyboard teleoperation node
-├── monitor_node/             # Terminal dashboard node
-│
-├── config/
-│   └── roomba_params.yaml    # All node parameters
-└── launch/
-    ├── roomba_bringup.py       # roomba_node (real) + monitor_node
-    └── roomba_bringup_stub.py  # roomba_node (stub) + monitor_node
+### Adding a new node
+
+1. Create `<name>_node/<name>_node.cpp` and `<name>_node/BUILD.bazel`
+2. Add to `launch/roomba_bringup.py` (and `roomba_bringup_stub.py` if stub mode is supported)
+3. Add a parameter section to `config/roomba_params.yaml`
+4. Update the topic diagram in this README
+
+### Why `scripts/` processes must run outside Bazel
+
+`foxglove_bridge`, `v4l2_camera`, and `ros2 bag` are installed via apt.
+Bazel overrides `AMENT_PREFIX_PATH` when launching nodes, which prevents apt-installed
+packages from finding their ROS2 typesupport libraries.
+Running these in a separate terminal (via `scripts/`) avoids this conflict.
+DDS operates at the network level, so Bazel-launched nodes and script-launched nodes
+discover each other's topics automatically.
+
+### Why colcon build is required for `ros2 topic echo` and `foxglove_bridge`
+
+Both tools resolve custom message types through the ROS2 workspace install path.
+Bazel's generated setup does not provide this. Build `roomba_msgs` once with colcon:
+
+```bash
+mkdir -p ~/ros2_ws/src && cp -r roomba_msgs ~/ros2_ws/src/
+cd ~/ros2_ws && colcon build --packages-select roomba_msgs
+source ~/ros2_ws/install/setup.bash  # add to ~/.bashrc
 ```
 
 ---
 
 ## Hardware Setup
 
-### Serial connection
+### Serial connection (Roomba)
 
-Roomba 600 series uses a 7-pin Mini-DIN connector.
-
-**Using a USB-to-serial (USB-FTDI) cable** (verified on Raspberry Pi 5):
-
-Connect the cable between the Raspberry Pi USB port and the Roomba Mini-DIN connector.
-The device appears as `/dev/ttyUSB0` (verify with `ls /dev/ttyUSB*`).
+The Roomba 600 series exposes a 7-pin Mini-DIN connector.
+Connect via a USB-to-serial (USB-FTDI) cable; the device appears as `/dev/ttyUSB0`.
 
 ```bash
-# Add your user to the dialout group to access the device without sudo
-sudo usermod -a -G dialout $USER
-# Log out and back in for the change to take effect
+sudo usermod -a -G dialout $USER   # re-login after
 ```
 
-Update `config/roomba_params.yaml` with the correct device name:
+Update `config/roomba_params.yaml`:
 
 ```yaml
 roomba_node:
@@ -319,38 +209,17 @@ roomba_node:
     serial_port: "/dev/ttyUSB0"
 ```
 
-**Using a GPIO UART (direct wiring):**
+### I2C connection (VL53L1X ToF sensor)
 
-Enable UART on Raspberry Pi 5 by editing `/boot/firmware/config.txt`:
-
-```
-enable_uart=1
-```
-
-Reboot and verify: `ls /dev/ttyAMA*`
-
-The device name varies by Raspberry Pi model and OS configuration.
-
-### Using `ros2 topic echo` with custom messages
-
-`ros2 topic echo` requires the message package to be built with colcon:
+Connect the sensor to the Raspberry Pi I2C bus (`/dev/i2c-1`, address 0x29).
+On Ubuntu (not Raspberry Pi OS), enable I2C if not already active:
 
 ```bash
-mkdir -p ~/ros2_ws/src
-cp -r roomba_msgs ~/ros2_ws/src/
-cd ~/ros2_ws
-colcon build --packages-select roomba_msgs
-source ~/ros2_ws/install/setup.bash  # add to ~/.bashrc
+# Only needed if /dev/i2c-1 does not exist
+echo "dtparam=i2c_arm=on" | sudo tee -a /boot/firmware/config.txt && sudo reboot
 ```
 
----
-
-## Roomba / Hardware Connectivity
-
-Work is separated into two categories:
-
-| Category | Roomba connection |
-|---|---|
-| Build, unit tests (GoogleTest), format check | **Not required** |
-| Node operation with `use_stub:=true` | **Not required** |
-| Real hardware verification | **Required** |
+```bash
+sudo usermod -aG i2c $USER   # re-login after
+i2cdetect -y 1               # 0x29 should appear
+```
