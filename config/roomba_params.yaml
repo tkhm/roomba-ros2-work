@@ -56,22 +56,37 @@ planner_node:
     # Update rate [ms] — should match roomba_node sensor poll rate
     update_rate_ms: 50
 
-    # WallFollower parameters (tune on real hardware)
-    base_speed_mm_s: 100
-    target_wall_signal: 100
-    kp: 0.5
-    wall_detect_threshold: 30
-    max_correction_mm_s: 80
+    # ToF integration: set use_tof=true to use VL53L1X instead of Roomba IR wall sensor.
+    # tof_max_range_mm: distance [mm] treated as "no wall" (wall_signal=0).
+    # Conversion: wall_signal = max(0, tof_max_range_mm - distance_mm)
+    # All signal thresholds below must be consistent with tof_max_range_mm:
+    #   physical distance = tof_max_range_mm - wall_signal
+    # Example with tof_max_range_mm=1000:
+    #   distance=400mm → wall_signal=600 → on target (target_wall_signal=600)
+    #   distance=200mm → wall_signal=800 → emergency avoidance fires
+    #   distance=600mm → wall_signal=400 → wall detected
+    use_tof: true
+    tof_max_range_mm: 1000
+
+    # WallFollower parameters — tuned for tof_max_range_mm=1000, target distance ~130mm
+    base_speed_mm_s: 80
+    target_wall_signal: 870  # target distance: 1000-870 = 130mm from wall
+    kp: 0.4
+    kd: 5.0  # derivative gain: damps oscillation (lower = less jitter from sensor noise)
+    # wall_detect_threshold: wall is "found" when wall_signal >= this value.
+    # tof_max_range_mm=1000: signal=400 means distance=600mm → start following within 600mm
+    wall_detect_threshold: 400
+    max_correction_mm_s: 50
 
     # Cliff debounce: number of consecutive cliff readings required before
     # reacting.  At 20 Hz: 3 = 150 ms.  Increase if false positives persist.
     cliff_debounce_count: 3
-    search_turn_bias_mm_s: 15  # drift right to re-acquire wall; 0 = straight, 30 = too tight
+    search_turn_bias_mm_s: 20  # drift right to re-acquire wall; 0 = straight, 30 = too tight
 
     # Emergency avoidance: fires when wall_signal exceeds this value,
     # bypassing P-control to avoid contact before bumper triggers.
-    # Set roughly 2-3x target_wall_signal (tune on real hardware).
-    wall_too_close_threshold: 250
+    # tof_max_range_mm=1000: signal=940 means distance=60mm → emergency when within 60mm
+    wall_too_close_threshold: 940
     emergency_turn_speed_mm_s: 80
 
     # Recovery: two-phase (straight backup → spin left)

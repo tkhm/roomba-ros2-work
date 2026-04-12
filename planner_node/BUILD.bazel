@@ -6,6 +6,7 @@ ros2_cpp_binary(
     deps = [
         "//libroomba:wall_follower",
         "//roomba_msgs:cpp_roomba_msgs",
+        "@ros2_common_interfaces//:cpp_std_msgs",
         "@ros2_rclcpp//:rclcpp",
     ],
     visibility = ["//visibility:public"],

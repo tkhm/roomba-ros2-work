@@ -5,6 +5,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "roomba_msgs/msg/drive_command.hpp"
 #include "roomba_msgs/msg/roomba_sensors.hpp"
+#include "std_msgs/msg/u_int16.hpp"
 
 // PlannerNode — wall-following autonomous mode.
 //
@@ -28,6 +29,7 @@ class PlannerNode : public rclcpp::Node {
     cfg.target_wall_signal =
         static_cast<uint16_t>(declare_parameter("target_wall_signal", cfg.target_wall_signal));
     cfg.kp = static_cast<float>(declare_parameter("kp", static_cast<double>(cfg.kp)));
+    cfg.kd = static_cast<float>(declare_parameter("kd", static_cast<double>(cfg.kd)));
     cfg.search_turn_bias_mm_s =
         static_cast<int16_t>(declare_parameter("search_turn_bias_mm_s", cfg.search_turn_bias_mm_s));
     cfg.wall_detect_threshold =
@@ -49,11 +51,26 @@ class PlannerNode : public rclcpp::Node {
 
     update_rate_ms_ = declare_parameter("update_rate_ms", 50);  // 20 Hz default
 
+    // ToF sensor integration.
+    // When use_tof=true, /tof/distance_mm overrides the Roomba IR wall_signal.
+    // Conversion: wall_signal = max(0, tof_max_range_mm - distance_mm)
+    // so that closer distance → higher signal, matching P-controller expectations.
+    use_tof_ = declare_parameter("use_tof", false);
+    tof_max_range_mm_ =
+        static_cast<uint16_t>(declare_parameter("tof_max_range_mm", 400));
+
     wall_follower_ = std::make_unique<roomba::WallFollower>(cfg);
 
     sensor_sub_ = create_subscription<roomba_msgs::msg::RoombaSensors>(
         "/roomba/sensors", 10,
         [this](roomba_msgs::msg::RoombaSensors::UniquePtr msg) { OnSensors(std::move(msg)); });
+
+    if (use_tof_) {
+      tof_sub_ = create_subscription<std_msgs::msg::UInt16>(
+          "/tof/distance_mm", 10,
+          [this](std_msgs::msg::UInt16::UniquePtr msg) { OnTof(std::move(msg)); });
+      RCLCPP_INFO(get_logger(), "PlannerNode: ToF mode (max_range=%d mm)", tof_max_range_mm_);
+    }
 
     drive_pub_ = create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/cmd/planner", 10);
 
@@ -73,8 +90,23 @@ class PlannerNode : public rclcpp::Node {
     latest_sensors_.cliff_front_left = msg->cliff_front_left;
     latest_sensors_.cliff_front_right = msg->cliff_front_right;
     latest_sensors_.cliff_right = msg->cliff_right;
-    latest_sensors_.wall_signal = msg->wall_signal;
+    // When use_tof=true, wall_signal is updated by OnTof() instead.
+    if (!use_tof_) {
+      latest_sensors_.wall_signal = msg->wall_signal;
+    }
     has_sensors_ = true;
+  }
+
+  void OnTof(std_msgs::msg::UInt16::UniquePtr msg) {
+    const uint16_t dist_mm{msg->data};
+    // Convert distance to wall_signal: closer → higher signal.
+    // wall_signal = max(0, tof_max_range_mm - dist_mm)
+    if (dist_mm == 0 || dist_mm >= tof_max_range_mm_) {
+      latest_sensors_.wall_signal = 0;
+    } else {
+      latest_sensors_.wall_signal =
+          static_cast<uint16_t>(tof_max_range_mm_ - dist_mm);
+    }
   }
 
   void OnTimer() {
@@ -97,11 +129,14 @@ class PlannerNode : public rclcpp::Node {
 
   std::unique_ptr<roomba::WallFollower> wall_follower_;
   rclcpp::Subscription<roomba_msgs::msg::RoombaSensors>::SharedPtr sensor_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt16>::SharedPtr tof_sub_;
   rclcpp::Publisher<roomba_msgs::msg::DriveCommand>::SharedPtr drive_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   roomba::WallFollowerSensors latest_sensors_{};
   bool has_sensors_{false};
   int32_t update_rate_ms_{50};
+  bool use_tof_{false};
+  uint16_t tof_max_range_mm_{400};
 };
 
 int main(int argc, char* argv[]) {
