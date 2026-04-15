@@ -9,4 +9,6 @@ echo "Press Ctrl+C to stop."
 ros2 bag record -s mcap -o "${OUTPUT}" \
   /image_raw/compressed \
   /roomba/sensors \
-  /roomba/drive_command
+  /roomba/drive_command \
+  /tof/distance_mm \
+  /planner/state
