@@ -1,10 +1,16 @@
 load("@com_github_mvukov_rules_ros2//ros2:cc_defs.bzl", "ros2_cpp_binary")
 
+cc_library(
+    name = "wall_follower",
+    hdrs = ["wall_follower.hpp"],
+    visibility = ["//visibility:public"],
+)
+
 ros2_cpp_binary(
     name = "planner_node",
     srcs = ["planner_node.cpp"],
     deps = [
-        "//libroomba:wall_follower",
+        ":wall_follower",
         "//roomba_msgs:cpp_roomba_msgs",
         "@ros2_common_interfaces//:cpp_std_msgs",
         "@ros2_rclcpp//:rclcpp",

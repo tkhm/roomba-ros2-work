@@ -1,4 +1,4 @@
-#include "libroomba/include/wall_follower.hpp"
+#include "planner_node/wall_follower.hpp"
 
 #include <gtest/gtest.h>
 
@@ -141,6 +141,7 @@ TEST(WallFollowerTest, FollowingCorrectionClampedByMax) {
   cfg.target_wall_signal = 100;
   cfg.kp = 2.0F;
   cfg.max_correction_mm_s = 50;
+  cfg.corner_detect_threshold = 1000;  // disable corner detection for this test
 
   auto wf{MakeFollower(cfg)};
   wf.Update(WithWall(200), 50);
@@ -234,6 +235,7 @@ TEST(WallFollowerTest, EmergencyAvoidanceNotFiredBelowThreshold) {
   cfg.wall_too_close_threshold = 250;
   cfg.kp = 1.0F;
   cfg.max_correction_mm_s = 80;
+  cfg.corner_detect_threshold = 1000;  // disable corner detection for this test
 
   auto wf{MakeFollower(cfg)};
   wf.Update(WithWall(200), 50);
@@ -317,6 +319,141 @@ TEST(WallFollowerTest, RecoveryElapsedResetsAfterCompletion) {
   auto s{wf.GetWheelSpeeds()};
   EXPECT_EQ(s.left_mm_s, -80);
   EXPECT_EQ(s.right_mm_s, -80);
+}
+
+// ---------------------------------------------------------------------------
+// FOLLOWING state — integral (I) term
+// ---------------------------------------------------------------------------
+
+TEST(WallFollowerTest, IntegralTermAccumulatesWithSteadyError) {
+  roomba_ros2::WallFollowerConfig cfg;
+  cfg.base_speed_mm_s = 100;
+  cfg.target_wall_signal = 100;
+  cfg.kp = 0.0F;  // P=0, D=0: only I drives correction
+  cfg.kd = 0.0F;
+  cfg.ki = 1.0F;
+  cfg.max_correction_mm_s = 200;
+
+  auto wf{MakeFollower(cfg)};
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
+
+  // wall_signal=80: error=+20 each cycle, correction grows each tick
+  wf.Update(WithWall(80), 50);
+  auto s1{wf.GetWheelSpeeds()};  // i_error=20, correction=20
+
+  wf.Update(WithWall(80), 50);
+  auto s2{wf.GetWheelSpeeds()};  // i_error=40, correction=40
+
+  // Each cycle the I-correction should be larger than the previous
+  EXPECT_GT(s1.left_mm_s, 100);  // positive correction pushes left wheel up
+  EXPECT_GT(s2.left_mm_s, s1.left_mm_s);
+}
+
+TEST(WallFollowerTest, IntegralTermResetsOnFollowingReEntry) {
+  roomba_ros2::WallFollowerConfig cfg;
+  cfg.base_speed_mm_s = 100;
+  cfg.target_wall_signal = 100;
+  cfg.kp = 0.0F;
+  cfg.kd = 0.0F;
+  cfg.ki = 1.0F;
+  cfg.max_correction_mm_s = 200;
+  cfg.recovery_backup_ms = 100;
+  cfg.recovery_turn_ms = 100;
+
+  auto wf{MakeFollower(cfg)};
+
+  // Accumulate I term over several cycles
+  wf.Update(WithWall(80), 50);  // error=20, i=20
+  wf.Update(WithWall(80), 50);  // error=20, i=40
+  auto s_before{wf.GetWheelSpeeds()};
+  ASSERT_GT(s_before.left_mm_s, 100);
+
+  // Trigger recovery and complete it (resets I term)
+  wf.Update(WithBump(), 50);
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kRecovering);
+  wf.Update(roomba_ros2::WallFollowerSensors{}, 250);  // complete recovery → FOLLOWING
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
+
+  // First tick after re-entry: I term restarted from 0, so correction = ki*error = 1*20 = 20
+  wf.Update(WithWall(80), 50);
+  auto s_after{wf.GetWheelSpeeds()};
+  EXPECT_EQ(s_after.left_mm_s, 120);  // base(100) + ki(1)*i_error(20) = 120
+}
+
+TEST(WallFollowerTest, IntegralAntiWindupClampsAccumulator) {
+  // Use a direct WallFollower (not MakeFollower) to control wall_detect_threshold.
+  roomba_ros2::WallFollowerConfig cfg;
+  cfg.base_speed_mm_s = 100;
+  cfg.target_wall_signal = 100;
+  cfg.kp = 0.0F;
+  cfg.kd = 0.0F;
+  cfg.ki = 1.0F;
+  cfg.max_correction_mm_s = 50;  // windup_limit = 50/1.0 = 50
+  cfg.wall_detect_threshold = 10;
+  cfg.wall_too_close_threshold = 300;
+
+  roomba_ros2::WallFollower wf{cfg};
+  wf.Update(WithWall(50), 50);  // enter FOLLOWING (signal 50 >= threshold 10)
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
+
+  // Feed constant large error (error=50 each cycle): i_error would reach 500
+  // without anti-windup, but is clamped at windup_limit=50.
+  for (int i{0}; i < 10; ++i) {
+    wf.Update(WithWall(50), 50);
+  }
+  auto s{wf.GetWheelSpeeds()};
+  // Correction clamped to max_correction_mm_s=50 → left=150, right=50
+  EXPECT_EQ(s.left_mm_s, 150);
+  EXPECT_EQ(s.right_mm_s, 50);
+}
+
+// ---------------------------------------------------------------------------
+// FOLLOWING state — corner detection (speed adaptation)
+// ---------------------------------------------------------------------------
+
+TEST(WallFollowerTest, CornerDetectionReducesSpeed) {
+  roomba_ros2::WallFollowerConfig cfg;
+  cfg.base_speed_mm_s = 100;
+  cfg.target_wall_signal = 100;
+  cfg.kp = 0.0F;  // no P/D/I correction so speed change is isolated
+  cfg.kd = 0.0F;
+  cfg.ki = 0.0F;
+  cfg.corner_detect_threshold = 20;
+  cfg.corner_speed_ratio = 0.5F;  // 50% speed at corners
+
+  auto wf{MakeFollower(cfg)};
+  ASSERT_EQ(wf.GetState(), roomba_ros2::WallFollower::State::kFollowing);
+
+  // First tick: error=0→0, d_error=0 → straight, full speed
+  wf.Update(WithWall(100), 50);
+  auto s_straight{wf.GetWheelSpeeds()};
+  EXPECT_EQ(s_straight.left_mm_s, 100);
+
+  // Second tick: wall_signal jumps by 30 → |d_error|=30 > threshold(20) → corner
+  wf.Update(WithWall(70), 50);
+  auto s_corner{wf.GetWheelSpeeds()};
+  EXPECT_EQ(s_corner.left_mm_s, 50);   // 100 * 0.5 = 50
+  EXPECT_EQ(s_corner.right_mm_s, 50);
+}
+
+TEST(WallFollowerTest, NoCornerDetectionBelowThreshold) {
+  roomba_ros2::WallFollowerConfig cfg;
+  cfg.base_speed_mm_s = 100;
+  cfg.target_wall_signal = 100;
+  cfg.kp = 0.0F;
+  cfg.kd = 0.0F;
+  cfg.ki = 0.0F;
+  cfg.corner_detect_threshold = 50;
+  cfg.corner_speed_ratio = 0.5F;
+
+  auto wf{MakeFollower(cfg)};
+  wf.Update(WithWall(100), 50);  // error=0, prev_error=0
+
+  // Small delta: |d_error|=10 < threshold(50) → full speed
+  wf.Update(WithWall(90), 50);
+  auto s{wf.GetWheelSpeeds()};
+  EXPECT_EQ(s.left_mm_s, 100);
+  EXPECT_EQ(s.right_mm_s, 100);
 }
 
 }  // namespace roomba_ros2::test

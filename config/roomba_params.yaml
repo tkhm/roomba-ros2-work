@@ -49,12 +49,32 @@ tof_node:
     use_stub: false
     # Sensor poll interval [ms]
     poll_rate_ms: 50
+    # Median filter window size (1 = disabled, max 9).
+    # Reduces high-frequency noise; larger window = smoother but slightly more lag.
+    filter_window_size: 5
 
 # --- planner_node (wall-following) ---
 planner_node:
   ros__parameters:
     # Update rate [ms] — should match roomba_node sensor poll rate
     update_rate_ms: 50
+
+    # Integral gain (I term). Start at 0 (disabled). Increase slowly to
+    # eliminate steady-state offset. Anti-windup clamps i_error so that
+    # ki * i_error <= max_correction_mm_s.
+    ki: 0.0
+
+    # Corner detection: when the wall signal changes rapidly (|d_error| > threshold),
+    # speed is reduced to corner_speed_ratio to prevent overshooting bends.
+    # Increase threshold to make detection less sensitive.
+    corner_detect_threshold: 50
+    corner_speed_ratio: 0.6
+
+    # Odometry correction: compensates heading drift while wall-following.
+    # Set angle_gain > 0 to activate (start with 1.0 and tune).
+    # Only fires when |angle_delta_deg| > straight_angle_threshold.
+    angle_gain: 0.0
+    straight_angle_threshold: 2
 
     # ToF integration: set use_tof=true to use VL53L1X instead of Roomba IR wall sensor.
     # tof_max_range_mm: distance [mm] treated as "no wall" (wall_signal=0).

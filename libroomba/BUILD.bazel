@@ -18,12 +18,6 @@ cc_library(
 )
 
 cc_library(
-    name = "wall_follower",
-    hdrs = ["include/wall_follower.hpp"],
-    visibility = ["//visibility:public"],
-)
-
-cc_library(
     name = "vl53l1x_driver",
     hdrs = ["include/vl53l1x_driver.hpp"],
     visibility = ["//visibility:public"],
