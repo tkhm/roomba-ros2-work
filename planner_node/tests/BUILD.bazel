@@ -1,0 +1,11 @@
+cc_test(
+    name = "wall_follower_test",
+    size = "small",
+    testonly = True,
+    srcs = ["wall_follower_test.cpp"],
+    deps = [
+        "//planner_node:wall_follower",
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+    ],
+)
