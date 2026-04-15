@@ -2,8 +2,10 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstddef>
 #include <memory>
 #include <string>
 
@@ -188,13 +190,18 @@ class LinuxVl53l1xDriver : public Vl53l1xDriver {
 // Reads the VL53L1X ToF sensor and publishes distance on /tof/distance_mm.
 //
 // Parameters:
-//   i2c_device   (string, default "/dev/i2c-1") — Linux I2C device path
-//   i2c_address  (int,    default 41 = 0x29)    — I2C slave address
-//   use_stub     (bool,   default false)         — use StubVl53l1xDriver
-//   poll_rate_ms (int,    default 50)            — sensor poll interval [ms]
+//   i2c_device         (string, default "/dev/i2c-1") — Linux I2C device path
+//   i2c_address        (int,    default 41 = 0x29)    — I2C slave address
+//   use_stub           (bool,   default false)         — use StubVl53l1xDriver
+//   poll_rate_ms       (int,    default 50)            — sensor poll interval [ms]
+//   filter_window_size (int,    default 5)             — median filter window (1–9)
 //
 // Topics:
-//   Pub  /tof/distance_mm  (std_msgs/UInt16)  — distance in mm (0 = invalid)
+//   Pub  /tof/distance_mm  (std_msgs/UInt16)  — median-filtered distance in mm (0 = invalid)
+//
+// Median filter: keeps the last filter_window_size valid readings in a ring
+// buffer and publishes the median, reducing high-frequency sensor noise
+// without introducing the lag of a moving-average filter.
 class TofNode : public rclcpp::Node {
  public:
   TofNode(const TofNode&) = delete;
@@ -207,6 +214,10 @@ class TofNode : public rclcpp::Node {
     const uint8_t i2c_address{static_cast<uint8_t>(declare_parameter("i2c_address", 0x29))};
     const bool use_stub{declare_parameter("use_stub", false)};
     const int32_t poll_rate_ms{static_cast<int32_t>(declare_parameter("poll_rate_ms", 50))};
+    const int32_t filter_window_param{
+        static_cast<int32_t>(declare_parameter("filter_window_size", 5))};
+    filter_size_ = static_cast<std::size_t>(
+        std::clamp(filter_window_param, int32_t{1}, static_cast<int32_t>(kMaxFilterWindow)));
 
     if (use_stub) {
       driver_ = std::make_unique<StubVl53l1xDriver>();
@@ -240,20 +251,37 @@ class TofNode : public rclcpp::Node {
     // Avoids publishing spurious 0s when the poll rate exceeds the sensor's
     // measurement rate (~10 Hz default for VL53L1X).
     if (dist_mm > 0) {
-      last_valid_dist_mm_ = dist_mm;
+      // Update ring buffer with new reading
+      filter_buf_[filter_pos_] = static_cast<uint16_t>(dist_mm);
+      filter_pos_ = (filter_pos_ + 1) % filter_size_;
+      if (filter_count_ < filter_size_) {
+        ++filter_count_;
+      }
+      // Median filter: sort a copy of the filled portion and take the middle element.
+      // This rejects spike outliers while preserving step-change responsiveness.
+      std::array<uint16_t, kMaxFilterWindow> sorted{filter_buf_};
+      std::sort(sorted.begin(), sorted.begin() + static_cast<std::ptrdiff_t>(filter_count_));
+      last_valid_dist_mm_ = static_cast<int16_t>(sorted[filter_count_ / 2]);
     }
 
     std_msgs::msg::UInt16 msg;
     msg.data = static_cast<uint16_t>(last_valid_dist_mm_);
     pub_->publish(msg);
 
-    RCLCPP_DEBUG(get_logger(), "ToF distance: %d mm", last_valid_dist_mm_);
+    RCLCPP_DEBUG(get_logger(), "ToF distance: %d mm (filtered)", last_valid_dist_mm_);
   }
+
+  // Maximum ring buffer capacity (filter_window_size is clamped to this).
+  static constexpr std::size_t kMaxFilterWindow{9};
 
   std::unique_ptr<Vl53l1xDriver> driver_;
   rclcpp::Publisher<std_msgs::msg::UInt16>::SharedPtr pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   int16_t last_valid_dist_mm_{0};
+  std::array<uint16_t, kMaxFilterWindow> filter_buf_{};
+  std::size_t filter_pos_{0};
+  std::size_t filter_count_{0};
+  std::size_t filter_size_{5};
 };
 
 }  // namespace roomba_ros2
