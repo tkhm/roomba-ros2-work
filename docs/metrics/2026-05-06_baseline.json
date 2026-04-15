@@ -1,0 +1,20 @@
+{
+  "label": "baseline",
+  "course": "corridor-right",
+  "bag_path": "/home/pitkhm/bags/baseline_20260506_125906",
+  "duration_s": 40.02,
+  "target_distance_mm": 130,
+  "wall_error_rmse_mm": 26.6,
+  "wall_error_max_mm": 53,
+  "avg_speed_mm_s": 69.3,
+  "speed_variance": 912.4,
+  "recovery_count": 1,
+  "following_ratio": 0.965,
+  "state_durations_s": {
+    "SEARCHING": 0.0,
+    "FOLLOWING": 38.62,
+    "RECOVERING": 1.4
+  },
+  "sample_count": 810,
+  "notes": []
+}
