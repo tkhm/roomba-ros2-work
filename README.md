@@ -80,18 +80,21 @@ graph LR
     VL53L1X -.->|I2C| tof_node
     roomba_node -.->|commands UART| Roomba
     Roomba -.->|sensors UART| roomba_node
-    keyboard_node -->|"/roomba/cmd/keyboard"| drive_mux_node
+    joy_teleop_node -->|"/roomba/cmd/manual"| drive_mux_node
+    keyboard_node -->|"/roomba/cmd/manual"| drive_mux_node
     planner_node -->|"/roomba/cmd/planner"| drive_mux_node
     drive_mux_node -->|"/roomba/drive_command"| roomba_node
+    joy_teleop_node -->|"/roomba/mode"| drive_mux_node
     keyboard_node -->|"/roomba/mode"| drive_mux_node
     roomba_node -->|"/roomba/sensors"| planner_node
     tof_node -->|"/tof/distance_mm"| planner_node
     %% excluded: monitor_node
 ```
 
-`drive_mux_node` forwards either the keyboard command or the planner command to `roomba_node`
-based on the current `/roomba/mode` (MANUAL=0 / WALL_FOLLOW=1 / FOLLOW_ROOMBA=2).
-Mode is toggled from `keyboard_node` via the `Tab` key.
+`drive_mux_node` forwards either the manual command (`keyboard_node` or `joy_teleop_node`)
+or the planner command to `roomba_node` based on the current `/roomba/mode`
+(MANUAL=0 / WALL_FOLLOW=1 / FOLLOW_ROOMBA=2).
+Mode is toggled from either teleop node (`Tab` on keyboard, `+` on the gamepad).
 
 > `monitor_node` and `foxglove_bridge` also subscribe to `/roomba/sensors` — omitted for clarity.
 
@@ -103,7 +106,7 @@ Mode is toggled from `keyboard_node` via the `Tab` key.
 |---|---|---|
 | `*_node/` | One directory per ROS2 node | `bazel run //<name>_node:<name>_node` |
 | `launch/` | Launch files that start node groups and load `config/roomba_params.yaml` | `bazel run //launch:roomba_bringup[_stub]` |
-| `scripts/` | Helper scripts for processes that must run **outside Bazel** (foxglove_bridge, camera, bag recording) | `./scripts/<name>.sh` directly |
+| `scripts/` | Helper scripts for processes that must run **outside Bazel** (foxglove_bridge, camera_node, joy_node, bag recording) | `./scripts/<name>.sh` directly |
 | `tools/` | clang-format scripts invoked by Bazel — not run directly | `bazel run //:format`, `bazel test //:format_check` |
 | `libroomba/` | ROS2-independent core library: serial HAL, OI protocol, wall-following algorithm | `bazel test //libroomba/tests/...` |
 | `roomba_msgs/` | Custom ROS2 message definitions (DriveCommand, RoombaSensors, DriveMode) | built automatically |
