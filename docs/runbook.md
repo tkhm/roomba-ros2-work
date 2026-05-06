@@ -27,7 +27,7 @@ cd ~/code/roomba-ros2-work
 **Terminal 3 — Camera**
 ```bash
 cd ~/code/roomba-ros2-work
-./scripts/camera.sh
+./scripts/camera_node.sh
 ```
 
 **Terminal 4 — Keyboard control**
@@ -80,7 +80,49 @@ Terminals 2–4 are the same. Camera is optional.
 | `a` | Spin left |
 | `d` | Spin right |
 | `Space` | Stop |
+| `Tab` | Toggle MANUAL / WALL_FOLLOW |
 | `q` | Quit |
+
+---
+
+## Gamepad control (Switch Pro Controller)
+
+Replaces Terminal 4 (keyboard) with two terminals.
+
+**Prerequisites (one-time setup)**:
+- User in `input` group: `sudo usermod -aG input $USER` then re-login
+- `hid_nintendo` blacklisted (the Bluetooth handshake times out, hid-generic
+  works fine for buttons/sticks):
+  ```bash
+  echo "blacklist hid_nintendo" | sudo tee /etc/modprobe.d/blacklist-nintendo.conf
+  sudo modprobe -r hid_nintendo
+  ```
+- Pair the Pro Controller via `bluetoothctl` (SYNC button on the back puts it
+  in pairing mode).
+- `ros-jazzy-joy` installed (apt).
+
+**Terminal 4a — joy_node (apt, runs outside Bazel)**
+```bash
+cd ~/code/roomba-ros2-work
+./scripts/joy_node.sh
+```
+Confirm `Opened joystick: Pro Controller`.
+
+**Terminal 4b — joy_teleop_node**
+```bash
+cd ~/code/roomba-ros2-work
+bazel run //joy_teleop_node:joy_teleop_node
+```
+
+| Input | Action |
+|-------|--------|
+| Left stick vertical | Forward / backward (proportional) |
+| Right stick horizontal | Turn (proportional) |
+| `B` | All-stop while held |
+| `+` | Toggle MANUAL / WALL_FOLLOW |
+| `−` | Quit |
+
+Watchdog: zero command if `/joy` is silent for 500 ms (Bluetooth-loss failsafe).
 
 ---
 

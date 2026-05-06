@@ -10,13 +10,13 @@
 // publishes the selected command to /roomba/drive_command.
 //
 // Topics:
-//   Sub  /roomba/cmd/keyboard  (DriveCommand) — manual keyboard commands
+//   Sub  /roomba/cmd/manual    (DriveCommand) — manual commands (keyboard or gamepad)
 //   Sub  /roomba/cmd/planner   (DriveCommand) — autonomous planner commands
-//   Sub  /roomba/mode          (DriveMode)    — mode selection from keyboard_node
+//   Sub  /roomba/mode          (DriveMode)    — mode selection from teleop nodes
 //   Pub  /roomba/drive_command (DriveCommand) — forwarded to roomba_node
 //
 // Mode behaviour:
-//   MANUAL (autonomous=false): forwards /roomba/cmd/keyboard
+//   MANUAL (autonomous=false): forwards /roomba/cmd/manual
 //   AUTO   (autonomous=true) : forwards /roomba/cmd/planner
 //
 // On transition AUTO → MANUAL: publishes a zero command immediately so the
@@ -32,9 +32,9 @@ class DriveMuxNode : public rclcpp::Node {
   DriveMuxNode() : Node("drive_mux_node") {
     drive_pub_ = create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/drive_command", 10);
 
-    keyboard_sub_ = create_subscription<roomba_msgs::msg::DriveCommand>(
-        "/roomba/cmd/keyboard", 10,
-        [this](roomba_msgs::msg::DriveCommand::UniquePtr msg) { OnKeyboard(std::move(msg)); });
+    manual_sub_ = create_subscription<roomba_msgs::msg::DriveCommand>(
+        "/roomba/cmd/manual", 10,
+        [this](roomba_msgs::msg::DriveCommand::UniquePtr msg) { OnManual(std::move(msg)); });
 
     planner_sub_ = create_subscription<roomba_msgs::msg::DriveCommand>(
         "/roomba/cmd/planner", 10,
@@ -48,7 +48,7 @@ class DriveMuxNode : public rclcpp::Node {
   }
 
  private:
-  void OnKeyboard(roomba_msgs::msg::DriveCommand::UniquePtr msg) {
+  void OnManual(roomba_msgs::msg::DriveCommand::UniquePtr msg) {
     if (mode_ == roomba_msgs::msg::DriveMode::MANUAL) {
       drive_pub_->publish(*msg);
     }
@@ -93,7 +93,7 @@ class DriveMuxNode : public rclcpp::Node {
   uint8_t mode_{roomba_msgs::msg::DriveMode::MANUAL};
 
   rclcpp::Publisher<roomba_msgs::msg::DriveCommand>::SharedPtr drive_pub_;
-  rclcpp::Subscription<roomba_msgs::msg::DriveCommand>::SharedPtr keyboard_sub_;
+  rclcpp::Subscription<roomba_msgs::msg::DriveCommand>::SharedPtr manual_sub_;
   rclcpp::Subscription<roomba_msgs::msg::DriveCommand>::SharedPtr planner_sub_;
   rclcpp::Subscription<roomba_msgs::msg::DriveMode>::SharedPtr mode_sub_;
 };

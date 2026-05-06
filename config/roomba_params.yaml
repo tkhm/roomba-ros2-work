@@ -27,6 +27,37 @@ keyboard_node:
     # Auto-stop delay [ms]: stop if no key pressed for this duration
     auto_stop_ms: 500
 
+# --- joy_teleop_node ---
+# Note: requires `ros2 run joy joy_node` to be running in another terminal
+# (joy is an apt package, not built by Bazel).  Default mapping below is for
+# Switch Pro Controller via hid-generic; verify with `ros2 topic echo /joy`
+# if you swap controllers.
+#   bazel run //joy_teleop_node:joy_teleop_node --ros-args --params-file config/roomba_params.yaml
+joy_teleop_node:
+  ros__parameters:
+    # Forward/backward axis (left stick vertical on Pro Controller)
+    axis_forward: 1
+    # Turn axis (right stick horizontal on Pro Controller)
+    axis_turn: 2
+    # invert_turn: true if right-stick-right gives a negative axis value
+    # (Pro Controller via hid-generic does, so default true).
+    invert_turn: true
+    # All-stop button held = zero command (B on Pro Controller)
+    button_stop: 0
+    # Toggle MANUAL <-> WALL_FOLLOW on rising edge (+ button)
+    button_mode_toggle: 9
+    # Quit node on rising edge (- button)
+    button_quit: 8
+    # Forward speed at full stick deflection [mm/s]
+    forward_speed_mm_s: 200
+    # Differential turn speed at full stick deflection [mm/s]
+    turn_speed_mm_s: 150
+    # Drive command publish rate [Hz]
+    publish_rate_hz: 20
+    # Watchdog: zero output if /joy silent for this duration [ms].
+    # Failsafe for Bluetooth disconnect.
+    watchdog_ms: 500
+
 # --- monitor_node ---
 monitor_node:
   ros__parameters:

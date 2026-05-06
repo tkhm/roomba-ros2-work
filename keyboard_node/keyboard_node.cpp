@@ -14,8 +14,10 @@
 
 // Keyboard teleoperation node for Roomba.
 //
-// Publishes drive commands to /roomba/cmd/keyboard and mode changes to
+// Publishes drive commands to /roomba/cmd/manual and mode changes to
 // /roomba/mode.  drive_mux selects which source reaches /roomba/drive_command.
+// Shares the manual command topic with joy_teleop_node (keyboard and gamepad
+// are not expected to run simultaneously).
 //
 // IMPORTANT: stdin is not available via ros2 launch.
 //   Run directly: bazel run //keyboard_node:keyboard_node
@@ -44,7 +46,7 @@ class KeyboardNode : public rclcpp::Node {
         static_cast<int16_t>(static_cast<int>(declare_parameter("turn_speed_mm_s", 100)));
     auto_stop_ms_ = static_cast<double>(static_cast<int>(declare_parameter("auto_stop_ms", 500)));
 
-    drive_pub_ = create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/cmd/keyboard", 10);
+    drive_pub_ = create_publisher<roomba_msgs::msg::DriveCommand>("/roomba/cmd/manual", 10);
     mode_pub_ = create_publisher<roomba_msgs::msg::DriveMode>("/roomba/mode", 10);
 
     // Disable canonical mode and echo for raw key input
